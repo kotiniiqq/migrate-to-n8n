@@ -6,6 +6,7 @@ import { makeLabel, parseMake } from './make/parse.ts';
 import { conditionParameters, MAKE_OPS, type OpSpec } from './map/conditions.ts';
 import './map/make/index.ts';
 import { findEntry, n8nNode, worst, type MapCtx, type MapOutput } from './map/registry.ts';
+import { suggestFor } from './map/suggest.ts';
 import type { ConversionReport, ConversionResult, Source, SourceGraph, SourceStep, Status, StepReport } from './types.ts';
 import { uniqueName } from './util/names.ts';
 
@@ -249,7 +250,8 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
   const first = g.steps.find((s) => !g.edges.some((e) => e.to === s.id));
   const firstOut = first && outs.get(first.id);
   const firstNode = firstOut && planned.find((p) => p.key === firstOut.entry);
-  if (firstOut && firstNode && !(isTriggerType(firstNode.type) && !firstNode.disabled)) {
+  // A trigger node (even a disabled one waiting to be finished) has no input: nothing goes in front of it.
+  if (firstOut && firstNode && !isTriggerType(firstNode.type)) {
     const { node, note } = scheduleNode(g);
     const name = reserve(node.wanted);
     planned.unshift({ ...node, key: 'trigger', wanted: name });
@@ -277,14 +279,6 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
   };
 }
 
-function manualStep(step: SourceStep): MapOutput {
-  return {
-    nodes: [n8nNode('noOp', step.label, {}, { disabled: true, note: `No automatic conversion for ${step.key} yet.` })],
-    status: 'manual',
-    suggestion: `Rebuild "${step.label}" (${step.key}) with the matching n8n node.`,
-  };
-}
-
 const MAKE: Dialect = {
   source: 'make',
   ops: MAKE_OPS,
@@ -292,7 +286,7 @@ const MAKE: Dialect = {
     const ctx: MakeExprCtx = refs;
     return { expr: (s) => translateMakeExpr(s, ctx), js: (s) => translateMakeJs(s, ctx) };
   },
-  manual: (step) => manualStep(step),
+  manual: suggestFor,
   label: makeLabel,
 };
 

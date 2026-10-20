@@ -56,8 +56,8 @@
       {
         "id": "id-4",
         "name": "Slack: Create Message",
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.4,
         "position": [
           780,
           0
@@ -115,8 +115,8 @@
       {
         "id": "id-8",
         "name": "Google Sheets: Update Row",
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
         "position": [
           1040,
           0
@@ -135,7 +135,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Slack: Create Message\nNo automatic conversion for slack:CreateMessage yet.",
+          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -151,7 +151,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Google Sheets: Update Row\nNo automatic conversion for google-sheets:updateRow yet.",
+          "content": "### ⚠ Google Sheets: Update Row\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Update row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1ZyXwVuTsRqPoNmLkJiHgFeDcBa; sheetId ← Orders; rowNumber ← {{ $('Webhook').item.json.body.row }}; values ← {\"0\":\"={{ $('HTTP request').item.json.status }}\"}. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -255,7 +255,7 @@
         "notes": [
           "Make stored the failed run and retried it later; n8n retries this step 4 times, 5 s apart. For longer gaps use an error workflow."
         ],
-        "suggestion": "Rebuild \"Slack: Create Message\" (slack:CreateMessage) with the matching n8n node."
+        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node."
       },
       {
         "sourceId": "4",
@@ -269,7 +269,7 @@
           "Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.",
           "On an error Make ran: \"Email: Send Email\". In n8n set this node's \"On Error\" to \"Continue (using error output)\" and connect the same steps to the error output."
         ],
-        "suggestion": "Rebuild \"Google Sheets: Update Row\" (google-sheets:updateRow) with the matching n8n node."
+        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Update row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1ZyXwVuTsRqPoNmLkJiHgFeDcBa; sheetId ← Orders; rowNumber ← {{ $('Webhook').item.json.body.row }}; values ← {\"0\":\"={{ $('HTTP request').item.json.status }}\"}. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node."
       }
     ],
     "credentials": [],

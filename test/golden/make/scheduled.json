@@ -26,8 +26,8 @@
       {
         "id": "id-2",
         "name": "Google Sheets: Filter Rows",
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
         "position": [
           260,
           0
@@ -116,8 +116,8 @@
       {
         "id": "id-7",
         "name": "Email: Send Email",
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
         "position": [
           1300,
           0
@@ -135,7 +135,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Google Sheets: Filter Rows\nNo automatic conversion for google-sheets:filterRows yet.",
+          "content": "### ⚠ Google Sheets: Filter Rows\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Filter rows\", connect the credential, map the fields, then enable it. Fields from Make: from ← drive; spreadsheetId ← /1QwErTyUiOpAsDfGhJkL; sheetId ← Invoices; includesHeaders ← true; valueRenderOption ← FORMATTED_VALUE; dateTimeRenderOption ← FORMATTED_STRING; limit ← 100. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -151,7 +151,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Email: Send Email\nNo automatic conversion for email:ActionSendEmail yet.",
+          "content": "### ⚠ Email: Send Email\nUse the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"={{ $('Google Sheets: Filter Rows').item.json['5'] }}\"]; subject ← Invoice {{ $('Google Sheets: Filter Rows').item.json['0'] }} is overdue; html ← Dear customer, invoice {{ $('Google Sheets: Filter Rows').item.json['0'] }} for {{ $('Google Sheets: Filter Rows').it….",
           "height": 200,
           "width": 320,
           "color": 3
@@ -238,7 +238,7 @@
         ],
         "status": "manual",
         "notes": [],
-        "suggestion": "Rebuild \"Google Sheets: Filter Rows\" (google-sheets:filterRows) with the matching n8n node."
+        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Filter rows\", connect the credential, map the fields, then enable it. Fields from Make: from ← drive; spreadsheetId ← /1QwErTyUiOpAsDfGhJkL; sheetId ← Invoices; includesHeaders ← true; valueRenderOption ← FORMATTED_VALUE; dateTimeRenderOption ← FORMATTED_STRING; limit ← 100. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node."
       },
       {
         "sourceId": "2",
@@ -271,8 +271,10 @@
           "Email: Send Email"
         ],
         "status": "manual",
-        "notes": [],
-        "suggestion": "Rebuild \"Email: Send Email\" (email:ActionSendEmail) with the matching n8n node."
+        "notes": [
+          "Uses data from \"Google Sheets: Filter Rows\", which must be finished by hand first."
+        ],
+        "suggestion": "Use the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"={{ $('Google Sheets: Filter Rows').item.json['5'] }}\"]; subject ← Invoice {{ $('Google Sheets: Filter Rows').item.json['0'] }} is overdue; html ← Dear customer, invoice {{ $('Google Sheets: Filter Rows').item.json['0'] }} for {{ $('Google Sheets: Filter Rows').it…."
       }
     ],
     "credentials": [],

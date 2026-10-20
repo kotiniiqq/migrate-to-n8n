@@ -72,8 +72,8 @@
       {
         "id": "id-6",
         "name": "Slack: Create Message",
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.4,
         "position": [
           1300,
           0
@@ -84,8 +84,8 @@
       {
         "id": "id-7",
         "name": "Email: Send Email",
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
         "position": [
           1040,
           100
@@ -221,7 +221,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Slack: Create Message\nNo automatic conversion for slack:CreateMessage yet.",
+          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -237,7 +237,7 @@
           -120
         ],
         "parameters": {
-          "content": "### ⚠ Email: Send Email\nNo automatic conversion for email:ActionSendEmail yet.",
+          "content": "### ⚠ Email: Send Email\nUse the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"support@example.com\"]; subject ← Ticket: {{ $('Webhook').item.json.body.subject }}; html ← <p>{{ $('Webhook').item.json.body.body }}</p>.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -395,7 +395,7 @@
         ],
         "status": "manual",
         "notes": [],
-        "suggestion": "Rebuild \"Slack: Create Message\" (slack:CreateMessage) with the matching n8n node."
+        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node."
       },
       {
         "sourceId": "6",
@@ -406,7 +406,7 @@
         ],
         "status": "manual",
         "notes": [],
-        "suggestion": "Rebuild \"Email: Send Email\" (email:ActionSendEmail) with the matching n8n node."
+        "suggestion": "Use the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"support@example.com\"]; subject ← Ticket: {{ $('Webhook').item.json.body.subject }}; html ← <p>{{ $('Webhook').item.json.body.body }}</p>."
       },
       {
         "sourceId": "7",

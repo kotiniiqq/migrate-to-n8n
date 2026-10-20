@@ -42,7 +42,8 @@
     "n8n-types": "tsx scripts/fetch-n8n-types.ts",
     "corpus": "tsx scripts/corpus.ts",
     "e2e": "tsx e2e/import.ts && tsx e2e/run.ts",
-    "mcpb": "tsx scripts/build-mcpb.ts"
+    "mcpb": "tsx scripts/build-mcpb.ts",
+    "n8n-apps": "tsx scripts/gen-n8n-apps.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
