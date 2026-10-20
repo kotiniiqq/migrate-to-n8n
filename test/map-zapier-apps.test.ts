@@ -81,3 +81,17 @@ test('Excel add row, HubSpot, Airtable, Notion, Telegram, Todoist, S3', () => {
   const s3 = oneZap('S3API', 'file', {});
   assert.equal(s3.node.type, 'n8n-nodes-base.awsS3');
 });
+
+test('other spellings, new-row triggers, Tables lookup, Zapier Mail, Interfaces form, Linear', () => {
+  assert.equal(oneZap('DelayAPI', 'delay_until', { time_delay_until: '{{1__when}}' }).node.type, 'n8n-nodes-base.wait');
+  assert.equal(oneZap('FilterCLIAPI', 'zapier_filter', { filter_criteria: [{ key: '1__a', match: 'iexact', value: 'x', action: 'continue', group: 1 }] }).node.type, 'n8n-nodes-base.filter');
+  assert.equal(oneZap('SlackCLIAPI', 'send_channel_message', { channel: 'C1', text: 'x' }).node.type, 'n8n-nodes-base.slack');
+  assert.equal(oneZap('ZapierMailCLIAPI', 'outbound', { to: 'a@b.c', subject: 's', body: 'b' }).node.type, 'n8n-nodes-base.emailSend');
+  const sh = oneZap('GoogleSheetsV2CLIAPI', 'new_row_notify_hook', { spreadsheet: '1yf', worksheet: '0' }, { first: true });
+  assert.equal(sh.node.type, 'n8n-nodes-base.googleSheetsTrigger');
+  assert.equal(p(sh.node).event, 'rowAdded');
+  const f = oneZap('TableCLIAPI', 'find_record', { table_id: 'T', field_data_key: 'data__f2', lookup_value: '{{1__x}}' });
+  assert.equal(p(f.node).filters.conditions[0].keyName, 'f2');
+  assert.equal(oneZap('InterfacesCLIAPI', 'new_form_submission', {}, { first: true }).node.type, 'n8n-nodes-base.formTrigger');
+  assert.equal(oneZap('LinearCLIAPI', 'create_issue', { title: 'Bug {{1__x}}' }).node.type, 'n8n-nodes-base.linear');
+});

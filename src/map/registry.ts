@@ -54,6 +54,8 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   slackTrigger: { type: 'n8n-nodes-base.slackTrigger', typeVersion: 1 },
   todoist: { type: 'n8n-nodes-base.todoist', typeVersion: 2.1 },
   awsS3: { type: 'n8n-nodes-base.awsS3', typeVersion: 2 },
+  formTrigger: { type: 'n8n-nodes-base.formTrigger', typeVersion: 2.3 },
+  linear: { type: 'n8n-nodes-base.linear', typeVersion: 1.1 },
 };
 
 // ---------- the mapping table ----------
