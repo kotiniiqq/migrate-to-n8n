@@ -1,0 +1,40 @@
+{
+  "name": "Daily overdue invoices",
+  "flow": [
+    {
+      "id": 1,
+      "module": "google-sheets:filterRows",
+      "version": 2,
+      "parameters": { "__IMTCONN__": 5486001 },
+      "mapper": { "from": "drive", "spreadsheetId": "/1QwErTyUiOpAsDfGhJkL", "sheetId": "Invoices", "includesHeaders": true, "valueRenderOption": "FORMATTED_VALUE", "dateTimeRenderOption": "FORMATTED_STRING", "limit": "100" },
+      "metadata": { "designer": { "x": 0, "y": 0 } }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": false },
+      "filter": { "name": "Overdue", "conditions": [[{ "a": "{{parseDate(1.`3`; \"DD.MM.YYYY\")}}", "o": "date:less", "b": "{{now}}" }]] },
+      "mapper": { "url": "https://crm.example.com/api/reminders", "method": "post", "bodyType": "x_www_form_urlencoded", "data": [{ "key": "invoice", "value": "{{1.`0`}}" }, { "key": "due", "value": "{{formatDate(parseDate(1.`3`; \"DD.MM.YYYY\"); \"YYYY-MM-DD\")}}" }], "headers": [], "qs": [] },
+      "metadata": { "designer": { "x": 300, "y": 0 } }
+    },
+    {
+      "id": 3,
+      "module": "util:FunctionSleep",
+      "version": 1,
+      "parameters": {},
+      "mapper": { "duration": "5" },
+      "metadata": { "designer": { "x": 600, "y": 0 } }
+    },
+    {
+      "id": 4,
+      "module": "email:ActionSendEmail",
+      "version": 7,
+      "parameters": { "account": 77002 },
+      "mapper": { "to": ["{{1.`5`}}"], "subject": "Invoice {{1.`0`}} is overdue", "html": "Dear customer, invoice {{1.`0`}} for {{1.`2`}} EUR was due on {{1.`3`}}.", "from": "" },
+      "metadata": { "designer": { "x": 900, "y": 0 } }
+    }
+  ],
+  "metadata": { "instant": false, "version": 1, "scenario": { "roundtrips": 1, "maxErrors": 3 }, "designer": { "orphans": [] }, "zone": "eu1.make.com" },
+  "scheduling": { "type": "daily", "time": "08:30" }
+}

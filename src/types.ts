@@ -26,6 +26,8 @@ export interface SourceStep {
   filterLabel?: string;
   /** Make error-handler directive, e.g. `builtin:Ignore`. */
   onError?: string;
+  /** Module keys of a Make error-handler route that does more than one directive. */
+  errorHandler?: string[];
   connectionRef?: string;
 }
 

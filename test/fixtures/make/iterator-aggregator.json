@@ -1,0 +1,55 @@
+{
+  "name": "Price list digest",
+  "flow": [
+    {
+      "id": 1,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": false },
+      "mapper": { "url": "https://shop.example.com/api/products?limit=50", "method": "get", "bodyType": "", "headers": [], "qs": [], "parseResponse": true },
+      "metadata": { "designer": { "x": 0, "y": 0 } }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicFeeder",
+      "version": 1,
+      "parameters": {},
+      "mapper": { "array": "{{1.data.items}}" },
+      "metadata": { "designer": { "x": 300, "y": 0 } }
+    },
+    {
+      "id": 3,
+      "module": "util:SetVariable2",
+      "version": 1,
+      "parameters": {},
+      "mapper": { "name": "line", "scope": "roundtrip", "value": "{{upper(2.name)}}: {{round(2.price * 1.2)}} EUR" },
+      "metadata": { "designer": { "x": 600, "y": 0 } }
+    },
+    {
+      "id": 4,
+      "module": "builtin:BasicAggregator",
+      "version": 1,
+      "parameters": { "feeder": 2 },
+      "mapper": { "line": "{{3.line}}" },
+      "metadata": { "designer": { "x": 900, "y": 0 } }
+    },
+    {
+      "id": 5,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": false },
+      "mapper": {
+        "url": "https://hooks.example.com/digest",
+        "method": "post",
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "data": "{\"lines\": \"{{join(map(4.array; \"line\"); \", \")}}\", \"count\": {{length(4.array)}}}",
+        "headers": [],
+        "qs": []
+      },
+      "metadata": { "designer": { "x": 1200, "y": 0 } }
+    }
+  ],
+  "metadata": { "instant": false, "version": 1, "scenario": { "roundtrips": 1, "maxErrors": 3 }, "designer": { "orphans": [] }, "zone": "eu2.make.com" },
+  "scheduling": { "type": "indefinitely", "interval": 3600 }
+}
