@@ -62,8 +62,19 @@
           780,
           0
         ],
-        "parameters": {},
-        "disabled": true,
+        "parameters": {
+          "resource": "message",
+          "operation": "post",
+          "select": "channel",
+          "messageType": "text",
+          "text": "=Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}",
+          "otherOptions": {},
+          "channelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "C0456EFGH"
+          }
+        },
         "retryOnFail": true,
         "maxTries": 4,
         "waitBetweenTries": 5000
@@ -148,22 +159,6 @@
           "options": {}
         },
         "onError": "continueRegularOutput"
-      },
-      {
-        "id": "id-9",
-        "name": "Note: Slack: Create Message",
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          740,
-          -220
-        ],
-        "parameters": {
-          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list.",
-          "height": 200,
-          "width": 320,
-          "color": 3
-        }
       }
     ],
     "connections": {
@@ -222,8 +217,8 @@
     "workflowName": "Order sync with error handling",
     "totals": {
       "converted": 2,
-      "review": 1,
-      "manual": 1
+      "review": 2,
+      "manual": 0
     },
     "steps": [
       {
@@ -259,11 +254,10 @@
           "Has an order",
           "Slack: Create Message"
         ],
-        "status": "manual",
+        "status": "review",
         "notes": [
           "Make stored the failed run and retried it later; n8n retries this step 4 times, 5 s apart. For longer gaps use an error workflow."
-        ],
-        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list."
+        ]
       },
       {
         "sourceId": "4",
@@ -282,6 +276,13 @@
     ],
     "credentials": [
       {
+        "app": "Slack",
+        "credentialType": "slackApi",
+        "nodes": [
+          "Slack: Create Message"
+        ]
+      },
+      {
         "app": "Google Sheets",
         "credentialType": "googleSheetsOAuth2Api",
         "nodes": [
@@ -297,10 +298,9 @@
     ],
     "placeholders": [],
     "nextSteps": [
-      "Connect credentials in n8n for: Google Sheets.",
+      "Connect credentials in n8n for: Slack, Google Sheets.",
       "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/order-sync-with-error-handling).",
-      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
-      "Check 1 step marked \"review\".",
+      "Check 2 steps marked \"review\".",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

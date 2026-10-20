@@ -135,23 +135,15 @@
           1300,
           0
         ],
-        "parameters": {},
-        "disabled": true
-      },
-      {
-        "id": "id-8",
-        "name": "Note: Email: Send Email",
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1260,
-          -220
-        ],
         "parameters": {
-          "content": "### ⚠ Email: Send Email\nUse the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"={{ $('Google Sheets: Filter Rows').item.json['F'] }}\"]; subject ← Invoice {{ $('Google Sheets: Filter Rows').item.json['A'] }} is overdue; html ← Dear customer, invoice {{ $('Google Sheets: Filter Rows').item.json['A'] }} for {{ $('Google Sheets: Filter Rows').it….",
-          "height": 200,
-          "width": 320,
-          "color": 3
+          "resource": "email",
+          "operation": "send",
+          "fromEmail": "REPLACE-ME@example.com",
+          "toEmail": "={{ $('Google Sheets: Filter Rows').item.json['F'] }}",
+          "subject": "=Invoice {{ $('Google Sheets: Filter Rows').item.json['A'] }} is overdue",
+          "emailFormat": "html",
+          "html": "=Dear customer, invoice {{ $('Google Sheets: Filter Rows').item.json['A'] }} for {{ $('Google Sheets: Filter Rows').item.json['C'] }} EUR was due on {{ $('Google Sheets: Filter Rows').item.json['D'] }}.",
+          "options": {}
         }
       }
     ],
@@ -222,8 +214,8 @@
     "workflowName": "Daily overdue invoices",
     "totals": {
       "converted": 2,
-      "review": 1,
-      "manual": 1
+      "review": 2,
+      "manual": 0
     },
     "steps": [
       {
@@ -270,15 +262,15 @@
         "n8nNodes": [
           "Email: Send Email"
         ],
-        "status": "manual",
+        "status": "review",
         "notes": [
+          "Make sent from the connected mailbox; set the sender address in n8n.",
           "Make read column F of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['F'] with the header. Original: {{1.`5`}}",
           "Make read column A of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['A'] with the header. Original: Invoice {{1.`0`}} is overdue",
           "Make read column A of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['A'] with the header. Original: Dear customer, invoice {{1.`0`}} for {{1.`2`}} EUR was due on {{1.`3`}}.",
           "Make read column C of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['C'] with the header. Original: Dear customer, invoice {{1.`0`}} for {{1.`2`}} EUR was due on {{1.`3`}}.",
           "Make read column D of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['D'] with the header. Original: Dear customer, invoice {{1.`0`}} for {{1.`2`}} EUR was due on {{1.`3`}}."
-        ],
-        "suggestion": "Use the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"={{ $('Google Sheets: Filter Rows').item.json['F'] }}\"]; subject ← Invoice {{ $('Google Sheets: Filter Rows').item.json['A'] }} is overdue; html ← Dear customer, invoice {{ $('Google Sheets: Filter Rows').item.json['A'] }} for {{ $('Google Sheets: Filter Rows').it…."
+        ]
       }
     ],
     "credentials": [
@@ -288,14 +280,27 @@
         "nodes": [
           "Google Sheets: Filter Rows"
         ]
+      },
+      {
+        "app": "SMTP",
+        "credentialType": "smtp",
+        "nodes": [
+          "Email: Send Email"
+        ]
       }
     ],
     "webhooks": [],
-    "placeholders": [],
+    "placeholders": [
+      {
+        "node": "Email: Send Email",
+        "field": "fromEmail",
+        "value": "REPLACE-ME@example.com"
+      }
+    ],
     "nextSteps": [
-      "Connect credentials in n8n for: Google Sheets.",
-      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
-      "Check 1 step marked \"review\".",
+      "Connect credentials in n8n for: Google Sheets, SMTP.",
+      "Check 2 steps marked \"review\".",
+      "Fill in 1 REPLACE-ME value.",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

@@ -30,14 +30,14 @@ test('an app with an n8n node: the node is placed disabled, with the fields to m
 });
 
 test('an app with a known API but no n8n node: a disabled HTTP Request with the method guessed and a placeholder', () => {
-  const r = convertMake(blueprint([hook, { module: 'apify:runActor', mapper: { actorId: 'x' } }]));
+  const r = convertMake(blueprint([hook, { module: 'elevenlabs:createSpeech', mapper: { text: 'x' } }]));
   const s = r.report.steps[1];
   const node = r.workflow.nodes.find((n) => n.name === s.n8nNodes.at(-1))!;
   assert.equal(node.type, NODE.httpRequest.type);
   assert.equal(node.disabled, true);
   assert.equal(node.parameters.method, 'POST');
-  assert.equal(node.parameters.url, 'https://api.apify.com/v2/REPLACE-ME');
-  assert.deepEqual(r.report.placeholders, [{ node: node.name, field: 'url', value: 'https://api.apify.com/v2/REPLACE-ME' }]);
+  assert.equal(node.parameters.url, 'https://api.elevenlabs.io/v1/REPLACE-ME');
+  assert.deepEqual(r.report.placeholders, [{ node: node.name, field: 'url', value: 'https://api.elevenlabs.io/v1/REPLACE-ME' }]);
   assert.match(s.suggestion!, /API/);
 });
 

@@ -54,7 +54,7 @@ register({
 
 // ---------- HTTP ----------
 
-function httpEntry(key: string, label: string, auth?: 'basic') {
+function httpEntry(key: string, label: string, auth?: 'basic' | 'apiKey') {
   register({
     source: 'make', key, label,
     build(ctx): MapOutput {
@@ -62,7 +62,12 @@ function httpEntry(key: string, label: string, auth?: 'basic') {
       const method = (str(p.method) || 'get').toUpperCase();
       const params: Record<string, unknown> = { method, url: ctx.expr(str(p.url)) };
       let credential: MapOutput['credential'];
-      if (auth === 'basic' || p.authUser || p.authPass) {
+      if (auth === 'apiKey') {
+        params.authentication = 'genericCredentialType';
+        params.genericAuthType = 'httpHeaderAuth';
+        credential = { app: 'API key', credentialType: 'httpHeaderAuth' };
+        ctx.note('The API key from the Make keychain moves to an n8n "Header Auth" credential (or "Query Auth" if the key went in the URL).', true);
+      } else if (auth === 'basic' || p.authUser || p.authPass) {
         params.authentication = 'genericCredentialType';
         params.genericAuthType = 'httpBasicAuth';
         credential = { app: 'HTTP Basic Auth', credentialType: 'httpBasicAuth' };
@@ -113,6 +118,54 @@ function httpEntry(key: string, label: string, auth?: 'basic') {
 httpEntry('http:ActionSendData', 'HTTP Request');
 httpEntry('http:ActionGetFile', 'HTTP Request (file)');
 httpEntry('http:ActionSendDataBasicAuth', 'HTTP Request (basic auth)', 'basic');
+httpEntry('http:ActionSendDataAPIKeyAuth', 'HTTP Request (API key)', 'apiKey');
+
+/** Make's current HTTP module ("Make a request", v4). */
+register({
+  source: 'make', key: 'http:MakeRequest', label: 'HTTP Request',
+  build(ctx): MapOutput {
+    const p = ctx.step.params;
+    const params: Record<string, unknown> = { method: (str(p.method) || 'get').toUpperCase(), url: ctx.expr(str(p.url)) };
+    let credential: MapOutput['credential'];
+    const authType = str(p.authenticationType);
+    if (authType && authType !== 'noAuth') {
+      const generic = authType === 'basicAuth' ? 'httpBasicAuth' : authType === 'apiKey' ? 'httpHeaderAuth' : 'oAuth2Api';
+      Object.assign(params, { authentication: 'genericCredentialType', genericAuthType: generic });
+      credential = { app: `HTTP (${authType})`, credentialType: generic };
+      ctx.note(`Make used "${authType}" from its keychain; create the matching n8n credential.`, true);
+    }
+    const qs = pairs(p.queryParameters, ctx);
+    if (qs.length) Object.assign(params, { sendQuery: true, queryParameters: { parameters: qs } });
+    const headers = pairs(p.headers, ctx);
+    if (headers.length) Object.assign(params, { sendHeaders: true, headerParameters: { parameters: headers } });
+    if (headers.some((h) => /^authorization$/i.test(h.name) || /api[-_]?key|token/i.test(h.name))) ctx.note('A secret is sent in a header; consider moving it to an n8n "Header Auth" credential.');
+    const ct = str(p.contentType);
+    if (ct === 'json' || ct === 'application/json') {
+      if (p.inputMethod === 'dataStructure') {
+        Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: `={{ JSON.stringify(${ctx.js(p.jsonDataStructureBodyContent ?? p.bodyContent ?? {})}) }}` });
+        ctx.note('Make built the JSON body from a data structure; check the field names.', true);
+      } else {
+        Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(str(p.jsonStringBodyContent ?? p.bodyContent)) });
+      }
+    } else if (ct === 'x-www-form-urlencoded' || ct === 'urlEncoded') {
+      Object.assign(params, { sendBody: true, contentType: 'form-urlencoded', specifyBody: 'keypair', bodyParameters: { parameters: pairs(p.formBodyContent ?? p.bodyContent, ctx) } });
+    } else if (ct === 'multipart/form-data' || ct === 'multipart') {
+      Object.assign(params, { sendBody: true, contentType: 'multipart-form-data', bodyParameters: { parameters: pairs(p.multipartBodyContent ?? p.bodyContent, ctx).map((x) => ({ parameterType: 'formData', ...x })) } });
+      ctx.note('Check the multipart fields; files need a binary property in n8n.', true);
+    } else if (ct) {
+      Object.assign(params, { sendBody: true, contentType: 'raw', rawContentType: str(p.customContentType) || 'text/plain', body: ctx.expr(str(p.textBodyContent ?? p.bodyContent)) });
+    }
+    params.options = p.stopOnHttpError === false ? { response: { response: { neverError: true } } } : {};
+    return {
+      nodes: [n8nNode('httpRequest', ctx.step.label, params)], status: 'converted', credential,
+      ref: (out, first) => {
+        if (first === 'data') return { base: `${nodeRef(out)}.item.json`, drop: 1 };
+        if (first === 'statusCode' || first === 'headers') throw new Error(`the HTTP ${first} is not in the n8n output by default (HTTP Request → Options → Response → Include Response Headers and Status)`);
+        return undefined;
+      },
+    };
+  },
+});
 
 // ---------- JSON ----------
 

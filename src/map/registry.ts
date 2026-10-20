@@ -99,7 +99,8 @@ export function register(...entries: MappingEntry[]): void {
 }
 
 export function findEntry(source: Source, key: string): MappingEntry | undefined {
-  return ENTRIES.get(`${source}|${key}`) ?? ENTRIES.get(`${source}|${key.split(':')[0]}:*`);
+  const [app, ...rest] = key.split(':');
+  return ENTRIES.get(`${source}|${key}`) ?? ENTRIES.get(`${source}|${app}:*`) ?? ENTRIES.get(`${source}|*:${rest.join(':')}`);
 }
 
 export function allEntries(source?: Source): MappingEntry[] {

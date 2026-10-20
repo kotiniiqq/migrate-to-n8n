@@ -78,8 +78,19 @@
           1300,
           0
         ],
-        "parameters": {},
-        "disabled": true
+        "parameters": {
+          "resource": "message",
+          "operation": "post",
+          "select": "channel",
+          "messageType": "text",
+          "text": "=Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}",
+          "otherOptions": {},
+          "channelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "C0123ABCD"
+          }
+        }
       },
       {
         "id": "id-7",
@@ -90,8 +101,16 @@
           1040,
           100
         ],
-        "parameters": {},
-        "disabled": true
+        "parameters": {
+          "resource": "email",
+          "operation": "send",
+          "fromEmail": "REPLACE-ME@example.com",
+          "toEmail": "support@example.com",
+          "subject": "=Ticket: {{ $('Webhook').item.json.body.subject }}",
+          "emailFormat": "html",
+          "html": "=<p>{{ $('Webhook').item.json.body.body }}</p>",
+          "options": {}
+        }
       },
       {
         "id": "id-8",
@@ -210,38 +229,6 @@
           "looseTypeValidation": true,
           "options": {}
         }
-      },
-      {
-        "id": "id-15",
-        "name": "Note: Slack: Create Message",
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1260,
-          -220
-        ],
-        "parameters": {
-          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list.",
-          "height": 200,
-          "width": 320,
-          "color": 3
-        }
-      },
-      {
-        "id": "id-16",
-        "name": "Note: Email: Send Email",
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1000,
-          -120
-        ],
-        "parameters": {
-          "content": "### ⚠ Email: Send Email\nUse the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"support@example.com\"]; subject ← Ticket: {{ $('Webhook').item.json.body.subject }}; html ← <p>{{ $('Webhook').item.json.body.body }}</p>.",
-          "height": 200,
-          "width": 320,
-          "color": 3
-        }
       }
     ],
     "connections": {
@@ -336,9 +323,9 @@
     "source": "make",
     "workflowName": "Route support tickets",
     "totals": {
-      "converted": 5,
+      "converted": 7,
       "review": 0,
-      "manual": 2
+      "manual": 0
     },
     "steps": [
       {
@@ -393,9 +380,8 @@
           "Urgent",
           "Slack: Create Message"
         ],
-        "status": "manual",
-        "notes": [],
-        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list."
+        "status": "converted",
+        "notes": []
       },
       {
         "sourceId": "6",
@@ -404,9 +390,10 @@
         "n8nNodes": [
           "Email: Send Email"
         ],
-        "status": "manual",
-        "notes": [],
-        "suggestion": "Use the Send Email node (placed here, disabled): choose the operation closest to \"Send email\", connect the credential, map the fields, then enable it. Fields from Make: account ← 77002; to ← [\"support@example.com\"]; subject ← Ticket: {{ $('Webhook').item.json.body.subject }}; html ← <p>{{ $('Webhook').item.json.body.body }}</p>."
+        "status": "converted",
+        "notes": [
+          "Make sent from the connected mailbox; set the sender address in n8n."
+        ]
       },
       {
         "sourceId": "7",
@@ -419,17 +406,39 @@
         "notes": []
       }
     ],
-    "credentials": [],
+    "credentials": [
+      {
+        "app": "Slack",
+        "credentialType": "slackApi",
+        "nodes": [
+          "Slack: Create Message"
+        ]
+      },
+      {
+        "app": "SMTP",
+        "credentialType": "smtp",
+        "nodes": [
+          "Email: Send Email"
+        ]
+      }
+    ],
     "webhooks": [
       {
         "node": "Webhook",
         "path": "route-support-tickets"
       }
     ],
-    "placeholders": [],
+    "placeholders": [
+      {
+        "node": "Email: Send Email",
+        "field": "fromEmail",
+        "value": "REPLACE-ME@example.com"
+      }
+    ],
     "nextSteps": [
+      "Connect credentials in n8n for: Slack, SMTP.",
       "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/route-support-tickets).",
-      "Finish 2 steps by hand: they are disabled and marked ⚠, with a suggestion next to each.",
+      "Fill in 1 REPLACE-ME value.",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

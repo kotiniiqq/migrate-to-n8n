@@ -53,7 +53,7 @@ const LABELS: Record<string, string> = {
   'util:SetVariables': 'Set variables', 'util:SetMultipleVariables': 'Set variables', 'util:GetVariable2': 'Get variable',
   'util:GetVariables': 'Get variables', 'util:FunctionSleep': 'Sleep', 'util:Switcher': 'Switch', 'json:ParseJSON': 'Parse JSON',
   'json:CreateJSON': 'Create JSON', 'json:TransformToJSON': 'Transform to JSON', 'json:AggregateToJSON': 'Aggregate to JSON',
-  'http:ActionSendData': 'HTTP request', 'http:ActionSendDataBasicAuth': 'HTTP request (basic auth)', 'http:ActionGetFile': 'Get a file',
+  'http:ActionSendData': 'HTTP request', 'http:MakeRequest': 'HTTP request', 'http:ActionSendDataAPIKeyAuth': 'HTTP request (API key)', 'http:ActionSendDataBasicAuth': 'HTTP request (basic auth)', 'http:ActionGetFile': 'Get a file',
   'placeholder:Placeholder': 'Placeholder', 'regexp:Parser': 'Match pattern', 'regexp:Replace': 'Replace text',
 };
 
