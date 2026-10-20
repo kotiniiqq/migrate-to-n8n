@@ -63,3 +63,68 @@ export function describe(n8n: N8nVersion, type: string, version: number) {
   if (!d) throw new Error(`${type}@${version} is not in n8n ${n8n}`);
   return d;
 }
+
+type Prop = Record<string, any>;
+
+function versionMatches(cond: unknown, version: number): boolean {
+  if (typeof cond === 'number') return cond === version;
+  const c = (cond as { _cnd?: Record<string, number> })?._cnd;
+  if (!c) return false;
+  if ('gte' in c) return version >= c.gte;
+  if ('lte' in c) return version <= c.lte;
+  if ('gt' in c) return version > c.gt;
+  if ('lt' in c) return version < c.lt;
+  if ('eq' in c) return version === c.eq;
+  return false;
+}
+
+/** n8n's displayOptions rule: is `prop` shown for these parameter values? */
+function isShown(prop: Prop, params: Record<string, unknown>, props: Prop[], version: number): boolean {
+  const value = (name: string) => (name in params ? params[name] : props.find((p) => p.name === name)?.default);
+  const matches = (name: string, allowed: unknown[]) => {
+    if (name === '@version') return allowed.some((a) => versionMatches(a, version));
+    if (name.startsWith('@') || name.startsWith('/')) return true;
+    const v = value(name);
+    return allowed.some((a) => (a && typeof a === 'object' && '_cnd' in (a as object) ? true : a === v));
+  };
+  const show = prop.displayOptions?.show as Record<string, unknown[]> | undefined;
+  const hide = prop.displayOptions?.hide as Record<string, unknown[]> | undefined;
+  if (show && !Object.entries(show).every(([k, a]) => matches(k, a))) return false;
+  if (hide && Object.entries(hide).some(([k, a]) => matches(k, a))) return false;
+  return true;
+}
+
+const isExpression = (v: unknown) => typeof v === 'string' && v.startsWith('=');
+
+/** Problems with one node against n8n's own description of it, in one targeted n8n version. */
+export function nodeIssues(n8n: N8nVersion, node: { name: string; type: string; typeVersion: number; parameters: Record<string, unknown> }): string[] {
+  const where = `${node.name} (${node.type}@${node.typeVersion}, n8n ${n8n})`;
+  let d;
+  try {
+    d = describe(n8n, node.type, node.typeVersion);
+  } catch (e) {
+    return [`${where}: ${(e as Error).message}`];
+  }
+  const issues: string[] = [];
+  for (const [key, value] of Object.entries(node.parameters)) {
+    const candidates = d.properties.filter((p) => p.name === key);
+    if (!candidates.length) { issues.push(`${where}: unknown parameter "${key}"`); continue; }
+    const visible = candidates.filter((p) => isShown(p, node.parameters, d.properties, node.typeVersion));
+    if (!visible.length) { issues.push(`${where}: parameter "${key}" is hidden by its display rules`); continue; }
+    const p = visible[0];
+    if (p.type === 'options' && !isExpression(value)) {
+      const allowed = (p.options ?? []).map((o: Prop) => o.value);
+      if (!allowed.includes(value)) issues.push(`${where}: "${key}" = ${JSON.stringify(value)} is not one of ${JSON.stringify(allowed)}`);
+    }
+    if ((p.type === 'collection' || p.type === 'fixedCollection') && value && typeof value === 'object' && !Array.isArray(value)) {
+      const names = (p.options ?? []).map((o: Prop) => o.name);
+      for (const k of Object.keys(value)) if (!names.includes(k)) issues.push(`${where}: "${key}.${k}" is not an option of ${key}`);
+    }
+  }
+  return issues;
+}
+
+/** Every node of a workflow checked against both targeted n8n versions. */
+export function catalogIssues(workflow: { nodes: Array<{ name: string; type: string; typeVersion: number; parameters: Record<string, unknown> }> }): string[] {
+  return N8N_VERSIONS.flatMap((v) => workflow.nodes.flatMap((n) => nodeIssues(v, n)));
+}

@@ -86,3 +86,12 @@ test('duplicate source positions fall back to the automatic layout', () => {
   const { workflow } = buildWorkflow('Demo', [node('A', { sourcePosition: [0, 0] }), node('B', { sourcePosition: [0, 0] })], [{ from: 'A', to: 'B' }]);
   assert.notDeepEqual(workflow.nodes[0].position, workflow.nodes[1].position);
 });
+
+test('retry settings and onError are copied to the node', () => {
+  const { workflow } = buildWorkflow('Demo', [node('A', { onError: 'continueErrorOutput', retry: { maxTries: 3, waitBetweenTries: 5000 } })], []);
+  const a = workflow.nodes[0];
+  assert.equal(a.onError, 'continueErrorOutput');
+  assert.equal(a.retryOnFail, true);
+  assert.equal(a.maxTries, 3);
+  assert.equal(a.waitBetweenTries, 5000);
+});

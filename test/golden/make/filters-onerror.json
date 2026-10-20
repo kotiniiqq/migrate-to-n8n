@@ -1,0 +1,289 @@
+{
+  "workflow": {
+    "name": "Order sync with error handling",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "order-sync-with-error-handling",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "webhookId": "id-2"
+      },
+      {
+        "id": "id-3",
+        "name": "HTTP request",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://erp.example.com/orders/{{ $('Webhook').item.json.body.order_id }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "expand",
+                "value": "lines"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $('Webhook').item.json.body.token }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "id": "id-4",
+        "name": "Slack: Create Message",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          780,
+          0
+        ],
+        "parameters": {},
+        "disabled": true,
+        "retryOnFail": true,
+        "maxTries": 4,
+        "waitBetweenTries": 5000
+      },
+      {
+        "id": "id-5",
+        "name": "Has an order",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-6",
+                "leftValue": "={{ $('HTTP request').item.json.id }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists",
+                  "singleValue": true
+                }
+              },
+              {
+                "id": "id-7",
+                "leftValue": "={{ $('HTTP request').item.json.total }}",
+                "rightValue": 100,
+                "operator": {
+                  "type": "number",
+                  "operation": "gte"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-8",
+        "name": "Google Sheets: Update Row",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1040,
+          0
+        ],
+        "parameters": {},
+        "disabled": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "id-9",
+        "name": "Note: Slack: Create Message",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          740,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Slack: Create Message\nNo automatic conversion for slack:CreateMessage yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      },
+      {
+        "id": "id-10",
+        "name": "Note: Google Sheets: Update Row",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1000,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Google Sheets: Update Row\nNo automatic conversion for google-sheets:updateRow yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      }
+    ],
+    "connections": {
+      "Has an order": {
+        "main": [
+          [
+            {
+              "node": "Slack: Create Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "HTTP request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP request": {
+        "main": [
+          [
+            {
+              "node": "Has an order",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Create Message": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets: Update Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "make",
+    "workflowName": "Order sync with error handling",
+    "totals": {
+      "converted": 2,
+      "review": 0,
+      "manual": 2
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "Webhook",
+        "sourceKey": "gateway:CustomWebHook",
+        "n8nNodes": [
+          "Webhook"
+        ],
+        "status": "converted",
+        "notes": [
+          "The webhook gets a new URL in n8n: point the sender (form, app) to it. Make accepted GET and POST; this listens to POST."
+        ]
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "HTTP request",
+        "sourceKey": "http:ActionSendData",
+        "n8nNodes": [
+          "HTTP request"
+        ],
+        "status": "converted",
+        "notes": [
+          "A secret is sent in a header; consider moving it to an n8n \"Header Auth\" credential.",
+          "Errors here are ignored: the item stops at this step (the error output is left unconnected), like Make \"Ignore\"."
+        ]
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "Slack: Create Message",
+        "sourceKey": "slack:CreateMessage",
+        "n8nNodes": [
+          "Has an order",
+          "Slack: Create Message"
+        ],
+        "status": "manual",
+        "notes": [
+          "Make stored the failed run and retried it later; n8n retries this step 4 times, 5 s apart. For longer gaps use an error workflow."
+        ],
+        "suggestion": "Rebuild \"Slack: Create Message\" (slack:CreateMessage) with the matching n8n node."
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Google Sheets: Update Row",
+        "sourceKey": "google-sheets:updateRow",
+        "n8nNodes": [
+          "Google Sheets: Update Row"
+        ],
+        "status": "manual",
+        "notes": [
+          "Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.",
+          "On an error Make ran: \"Email: Send Email\". In n8n set this node's \"On Error\" to \"Continue (using error output)\" and connect the same steps to the error output."
+        ],
+        "suggestion": "Rebuild \"Google Sheets: Update Row\" (google-sheets:updateRow) with the matching n8n node."
+      }
+    ],
+    "credentials": [],
+    "webhooks": [
+      {
+        "node": "Webhook",
+        "path": "order-sync-with-error-handling"
+      }
+    ],
+    "placeholders": [],
+    "nextSteps": [
+      "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/order-sync-with-error-handling).",
+      "Finish 2 steps by hand: they are disabled and marked ⚠, with a suggestion next to each.",
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}

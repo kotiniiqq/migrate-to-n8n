@@ -57,6 +57,9 @@ export interface N8nNode {
   onError?: 'continueRegularOutput' | 'continueErrorOutput' | 'stopWorkflow';
   notes?: string;
   webhookId?: string;
+  retryOnFail?: boolean;
+  maxTries?: number;
+  waitBetweenTries?: number;
 }
 
 export interface N8nConnectionTarget {

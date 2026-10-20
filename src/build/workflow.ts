@@ -19,6 +19,8 @@ export interface PlannedNode {
   note?: string;
   sourcePosition?: [number, number];
   webhookId?: string;
+  /** n8n's "Retry On Fail" node settings (n8n allows at most 5 tries, 5 s apart). */
+  retry?: { maxTries: number; waitBetweenTries: number };
 }
 
 export interface PlannedEdge {
@@ -101,6 +103,7 @@ export function buildWorkflow(name: string, planned: PlannedNode[], edges: Plann
     if (p.disabled) node.disabled = true;
     if (p.onError) node.onError = p.onError;
     if (p.webhookId) node.webhookId = p.webhookId;
+    if (p.retry) Object.assign(node, { retryOnFail: true, maxTries: p.retry.maxTries, waitBetweenTries: p.retry.waitBetweenTries });
     nodes.push(node);
   }
   for (const p of planned) {

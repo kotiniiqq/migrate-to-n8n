@@ -8,8 +8,9 @@ import { nodeRef } from '../util/names.ts';
 export interface MakeExprCtx {
   /** n8n node name for a Make module id, or undefined when the module has no node. */
   refName(moduleId: string): string | undefined;
-  /** Full base expression for a module, when it is not `$('Name').item.json` (e.g. iterators). */
-  refBase?(moduleId: string): string | undefined;
+  /** How a step exposes its output, when it is not `$('Name').item.json.<path>`: another base expression, and
+   *  how many leading path fields to drop (an HTTP response's `data`). May throw to refuse a field. */
+  refBase?(moduleId: string, firstField?: string): { base: string; drop: number } | undefined;
 }
 
 export interface Translated {
@@ -458,9 +459,17 @@ class Printer {
         return kw[n.v];
       }
       case 'ref': {
-        const base = this.ctx.refBase?.(n.id) ?? (this.ctx.refName(n.id) !== undefined ? `${nodeRef(this.ctx.refName(n.id)!)}.item.json` : undefined);
-        if (base === undefined) throw new Unsupported(`module ${n.id} is not in the converted workflow`);
-        return any(this.path(base, n.path));
+        const first = n.path[0]?.k === 'prop' ? n.path[0].name : undefined;
+        let custom: { base: string; drop: number } | undefined;
+        try {
+          custom = this.ctx.refBase?.(n.id, first);
+        } catch (e) {
+          throw new Unsupported((e as Error).message);
+        }
+        if (custom) return any(this.path(custom.base, n.path.slice(custom.drop)));
+        const name = this.ctx.refName(n.id);
+        if (name === undefined) throw new Unsupported(`module ${n.id} is not in the converted workflow`);
+        return any(this.path(`${nodeRef(name)}.item.json`, n.path));
       }
       case 'call': {
         const o = this.call(n.name, n.args);
@@ -535,4 +544,26 @@ export function translateMakeExpr(value: string, ctx: MakeExprCtx): Translated {
   }
   const ok = printer.notes.length === 0;
   return { value: `=${out.join('')}`, ok, notes: printer.notes.map((n) => `${n} Original: ${value}`) };
+}
+
+/** The same translation as plain JavaScript, for Code nodes and for building larger expressions. Text
+ *  around formulas becomes string literals joined with +; a value without formulas is one string literal. */
+export function translateMakeJs(value: string, ctx: MakeExprCtx): { js: string; ok: boolean; notes: string[] } {
+  const parts = splitTemplate(value);
+  const printer = new Printer(ctx);
+  const out: string[] = [];
+  try {
+    for (const p of parts) {
+      if ('text' in p) out.push(JSON.stringify(p.text));
+      else if ('broken' in p) throw new Unsupported('a {{ is not closed');
+      else {
+        const js = printer.p(new Parser(tokenize(p.expr)).parseAll()).js;
+        out.push(parts.length > 1 ? `String(${js})` : js);
+      }
+    }
+  } catch (e) {
+    if (!(e instanceof Unsupported)) throw e;
+    return { js: JSON.stringify(value), ok: false, notes: [`Formula not translated (${e.message}): ${value}`] };
+  }
+  return { js: out.join(' + ') || '""', ok: printer.notes.length === 0, notes: printer.notes.map((n) => `${n} Original: ${value}`) };
 }

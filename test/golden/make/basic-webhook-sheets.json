@@ -1,0 +1,211 @@
+{
+  "workflow": {
+    "name": "Leads from the website form",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "Form submitted",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "leads-from-the-website-form",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "id-2"
+      },
+      {
+        "id": "id-3",
+        "name": "Set variable",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-4",
+                "name": "fullName",
+                "value": "={{ $('Form submitted').item.json.body.first_name }} {{ $('Form submitted').item.json.body.last_name }}",
+                "type": "string"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-5",
+        "name": "Google Sheets: Add Row",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {},
+        "disabled": true
+      },
+      {
+        "id": "id-6",
+        "name": "Webhook response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          780,
+          0
+        ],
+        "parameters": {
+          "respondWith": "text",
+          "responseBody": "={\"ok\": true, \"row\": \"{{ $('Google Sheets: Add Row').item.json.tableName }}\"}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "id-7",
+        "name": "Note: Google Sheets: Add Row",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          480,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Google Sheets: Add Row\nNo automatic conversion for google-sheets:addRow yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      }
+    ],
+    "connections": {
+      "Form submitted": {
+        "main": [
+          [
+            {
+              "node": "Set variable",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set variable": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets: Add Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets: Add Row": {
+        "main": [
+          [
+            {
+              "node": "Webhook response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "make",
+    "workflowName": "Leads from the website form",
+    "totals": {
+      "converted": 2,
+      "review": 1,
+      "manual": 1
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "Form submitted",
+        "sourceKey": "gateway:CustomWebHook",
+        "n8nNodes": [
+          "Form submitted"
+        ],
+        "status": "converted",
+        "notes": [
+          "The webhook gets a new URL in n8n: point the sender (form, app) to it. Make accepted GET and POST; this listens to POST."
+        ]
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "Set variable",
+        "sourceKey": "util:SetVariable2",
+        "n8nNodes": [
+          "Set variable"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "Google Sheets: Add Row",
+        "sourceKey": "google-sheets:addRow",
+        "n8nNodes": [
+          "Google Sheets: Add Row"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Rebuild \"Google Sheets: Add Row\" (google-sheets:addRow) with the matching n8n node."
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Webhook response",
+        "sourceKey": "gateway:WebhookRespond",
+        "n8nNodes": [
+          "Webhook response"
+        ],
+        "status": "review",
+        "notes": [
+          "Uses data from \"Google Sheets: Add Row\", which must be finished by hand first."
+        ]
+      }
+    ],
+    "credentials": [],
+    "webhooks": [
+      {
+        "node": "Form submitted",
+        "path": "leads-from-the-website-form"
+      }
+    ],
+    "placeholders": [],
+    "nextSteps": [
+      "Point the senders to the new webhook URL: \"Form submitted\" (…/webhook/leads-from-the-website-form).",
+      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
+      "Check 1 step marked \"review\".",
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}

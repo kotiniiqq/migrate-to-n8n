@@ -1,0 +1,284 @@
+{
+  "workflow": {
+    "name": "Price list digest",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "Schedule",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "id-2",
+        "name": "HTTP request",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "https://shop.example.com/api/products?limit=50",
+          "options": {}
+        }
+      },
+      {
+        "id": "id-3",
+        "name": "Iterator",
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "fieldToSplitOut": "items",
+          "include": "noOtherFields",
+          "options": {}
+        }
+      },
+      {
+        "id": "id-4",
+        "name": "Set variable",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          780,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-5",
+                "name": "line",
+                "value": "={{ String($('Iterator').item.json.name).toUpperCase() }}: {{ Math.round($('Iterator').item.json.price * 1.2) }} EUR",
+                "type": "string"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-6",
+        "name": "Array aggregator (fields)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1040,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-7",
+                "name": "line",
+                "value": "={{ $('Set variable').item.json.line }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "id-8",
+        "name": "Array aggregator",
+        "type": "n8n-nodes-base.aggregate",
+        "typeVersion": 1,
+        "position": [
+          1300,
+          0
+        ],
+        "parameters": {
+          "aggregate": "aggregateAllItemData",
+          "destinationFieldName": "array",
+          "options": {}
+        }
+      },
+      {
+        "id": "id-9",
+        "name": "HTTP request 2",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1560,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://hooks.example.com/digest",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={\"lines\": \"{{ $('Array aggregator').item.json.array.map(e => e?.line).join(\", \") }}\", \"count\": {{ $('Array aggregator').item.json.array.length }}}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Schedule": {
+        "main": [
+          [
+            {
+              "node": "HTTP request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Array aggregator (fields)": {
+        "main": [
+          [
+            {
+              "node": "Array aggregator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP request": {
+        "main": [
+          [
+            {
+              "node": "Iterator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Iterator": {
+        "main": [
+          [
+            {
+              "node": "Set variable",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set variable": {
+        "main": [
+          [
+            {
+              "node": "Array aggregator (fields)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Array aggregator": {
+        "main": [
+          [
+            {
+              "node": "HTTP request 2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "make",
+    "workflowName": "Price list digest",
+    "totals": {
+      "converted": 5,
+      "review": 0,
+      "manual": 0
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "HTTP request",
+        "sourceKey": "http:ActionSendData",
+        "n8nNodes": [
+          "HTTP request"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "Iterator",
+        "sourceKey": "builtin:BasicFeeder",
+        "n8nNodes": [
+          "Iterator"
+        ],
+        "status": "converted",
+        "notes": [
+          "Each array element becomes one item. If the array holds plain values (not objects), read them as {{ $json.items }}."
+        ]
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "Set variable",
+        "sourceKey": "util:SetVariable2",
+        "n8nNodes": [
+          "Set variable"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Array aggregator",
+        "sourceKey": "builtin:BasicAggregator",
+        "n8nNodes": [
+          "Array aggregator (fields)",
+          "Array aggregator"
+        ],
+        "status": "converted",
+        "notes": [
+          "Collects every item that reaches it into \"array\", like Make closing the iterator."
+        ]
+      },
+      {
+        "sourceId": "5",
+        "sourceLabel": "HTTP request",
+        "sourceKey": "http:ActionSendData",
+        "n8nNodes": [
+          "HTTP request 2"
+        ],
+        "status": "converted",
+        "notes": []
+      }
+    ],
+    "credentials": [],
+    "webhooks": [],
+    "placeholders": [],
+    "nextSteps": [
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}

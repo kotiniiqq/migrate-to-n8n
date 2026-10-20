@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { translateMakeExpr } from '../src/make/expr.ts';
+import { translateMakeExpr, translateMakeJs } from '../src/make/expr.ts';
 
 const NAMES: Record<string, string> = { 1: 'Webhook', 2: 'Set fullName', 3: "It's" };
 const ctx = { refName: (id: string) => NAMES[id] };
@@ -95,9 +95,19 @@ test('broken formula syntax is flagged, not thrown', () => {
   assert.equal(r.ok, false);
 });
 
-test('a module that a step turns into a different base can override the reference', () => {
-  const r = translateMakeExpr('{{2.name}}', { refName: () => 'Split Out', refBase: (id) => (id === '2' ? "$('Split Out').item.json" : undefined) });
-  assert.equal(r.value, "={{ $('Split Out').item.json.name }}");
+test('a step can rewrite references to it: another base, and leading fields dropped', () => {
+  const refBase = (id: string, first?: string) =>
+    id === '2' && first === 'data' ? { base: "$('HTTP').item.json", drop: 1 } : id === '2' ? { base: "$('HTTP').item.json.other", drop: 0 } : undefined;
+  const ctx2 = { refName: () => 'HTTP', refBase };
+  assert.equal(translateMakeExpr('{{2.data.id}}', ctx2).value, "={{ $('HTTP').item.json.id }}");
+  assert.equal(translateMakeExpr('{{2.x}}', ctx2).value, "={{ $('HTTP').item.json.other.x }}");
+});
+
+test('a reference rewrite can refuse a field that has no equivalent', () => {
+  const refBase = () => { throw new Error('statusCode is not available'); };
+  const r = translateMakeExpr('{{2.statusCode}}', { refName: () => 'HTTP', refBase });
+  assert.equal(r.ok, false);
+  assert.match(r.notes.join(' '), /statusCode is not available/);
 });
 
 test('Make system variables map to n8n workflow and execution data', () => {
@@ -112,4 +122,22 @@ test('Make custom variables become n8n variables, flagged for review', () => {
   assert.equal(r.value, '={{ $vars.API_BASE }}/items');
   assert.equal(r.ok, false);
   assert.match(r.notes.join(' '), /n8n variable "API_BASE"/);
+});
+
+test('translateMakeJs: one formula is plain JavaScript', () => {
+  const r = translateMakeJs('{{1.email}}', ctx);
+  assert.deepEqual(r, { js: `${W}.email`, ok: true, notes: [] });
+});
+
+test('translateMakeJs: text around formulas is joined as a string', () => {
+  assert.equal(translateMakeJs('Hi {{1.name}}!', ctx).js, `"Hi " + String(${W}.name) + "!"`);
+  assert.equal(translateMakeJs('{{1.a}}{{1.b}}', ctx).js, `String(${W}.a) + String(${W}.b)`);
+  assert.equal(translateMakeJs('plain', ctx).js, '"plain"');
+  assert.equal(translateMakeJs('', ctx).js, '""');
+});
+
+test('translateMakeJs: an untranslatable value stays a string literal and is not ok', () => {
+  const r = translateMakeJs('{{99.x}}', ctx);
+  assert.equal(r.js, '"{{99.x}}"');
+  assert.equal(r.ok, false);
 });

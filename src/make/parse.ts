@@ -41,12 +41,30 @@ const APP_NAMES: Record<string, string> = {
   'openai-gpt-3': 'OpenAI', email: 'Email', slack: 'Slack', telegram: 'Telegram', airtable: 'Airtable', notion: 'Notion',
 };
 
+/** Names Make itself shows for its built-in modules. */
+const LABELS: Record<string, string> = {
+  'gateway:CustomWebHook': 'Webhook', 'gateway:CustomMailHook': 'Mailhook', 'gateway:WebhookRespond': 'Webhook response',
+  'builtin:BasicRouter': 'Router', 'builtin:BasicFeeder': 'Iterator', 'builtin:BasicIterator': 'Iterator',
+  'builtin:BasicAggregator': 'Array aggregator', 'util:TextAggregator': 'Text aggregator', 'util:SetVariable2': 'Set variable',
+  'util:SetVariables': 'Set variables', 'util:SetMultipleVariables': 'Set variables', 'util:GetVariable2': 'Get variable',
+  'util:GetVariables': 'Get variables', 'util:FunctionSleep': 'Sleep', 'util:Switcher': 'Switch', 'json:ParseJSON': 'Parse JSON',
+  'json:CreateJSON': 'Create JSON', 'json:TransformToJSON': 'Transform to JSON', 'json:AggregateToJSON': 'Aggregate to JSON',
+  'http:ActionSendData': 'HTTP request', 'http:ActionSendDataBasicAuth': 'HTTP request (basic auth)', 'http:ActionGetFile': 'Get a file',
+  'placeholder:Placeholder': 'Placeholder', 'regexp:Parser': 'Match pattern', 'regexp:Replace': 'Replace text',
+};
+
 const humanize = (s: string) => s.replace(/[-_]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, (c) => c.toUpperCase()).trim();
 
 /** "google-sheets:addRow" → "Google Sheets: Add Row"; the Make "Action" prefix is noise. */
 function defaultLabel(app: string, action: string): string {
   const appName = APP_NAMES[app] ?? humanize(app.replace(/^app#/, ''));
   return `${appName}: ${humanize(action.replace(/^Action(?=[A-Z])/, ''))}`;
+}
+
+/** The name Make shows for a module key. */
+export function makeLabel(key: string): string {
+  const [app, ...rest] = key.split(':');
+  return LABELS[key] || defaultLabel(app, rest.join(':'));
 }
 
 function conditions(f: MakeModule['filter']): ConditionGroup | undefined {
@@ -71,7 +89,7 @@ function toStep(m: MakeModule): SourceStep {
     params[k] = v;
   }
   const d = m.metadata?.designer;
-  const step: SourceStep = { id: String(m.id), key, app, action, label: d?.name?.trim() || defaultLabel(app, action), params };
+  const step: SourceStep = { id: String(m.id), key, app, action, label: d?.name?.trim() || makeLabel(key), params };
   if (typeof d?.x === 'number' && typeof d?.y === 'number') step.position = [d.x, d.y];
   if (connectionRef) step.connectionRef = connectionRef;
   if (m.onerror?.length) {

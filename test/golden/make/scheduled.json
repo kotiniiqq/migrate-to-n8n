@@ -1,0 +1,287 @@
+{
+  "workflow": {
+    "name": "Daily overdue invoices",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "Schedule",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "days",
+                "triggerAtHour": 8,
+                "triggerAtMinute": 30
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "id-2",
+        "name": "Google Sheets: Filter Rows",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {},
+        "disabled": true
+      },
+      {
+        "id": "id-3",
+        "name": "HTTP request",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          780,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://crm.example.com/api/reminders",
+          "sendBody": true,
+          "contentType": "form-urlencoded",
+          "specifyBody": "keypair",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "invoice",
+                "value": "={{ $('Google Sheets: Filter Rows').item.json['0'] }}"
+              },
+              {
+                "name": "due",
+                "value": "={{ DateTime.fromFormat(String($('Google Sheets: Filter Rows').item.json['3']), 'dd.LL.yyyy').toFormat('yyyy-LL-dd') }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "id-4",
+        "name": "Overdue",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-5",
+                "leftValue": "={{ DateTime.fromFormat(String($('Google Sheets: Filter Rows').item.json['3']), 'dd.LL.yyyy') }}",
+                "rightValue": "={{ $now }}",
+                "operator": {
+                  "type": "dateTime",
+                  "operation": "before"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-6",
+        "name": "Sleep",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          1040,
+          0
+        ],
+        "parameters": {
+          "amount": 5,
+          "unit": "seconds"
+        }
+      },
+      {
+        "id": "id-7",
+        "name": "Email: Send Email",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1300,
+          0
+        ],
+        "parameters": {},
+        "disabled": true
+      },
+      {
+        "id": "id-8",
+        "name": "Note: Google Sheets: Filter Rows",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          220,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Google Sheets: Filter Rows\nNo automatic conversion for google-sheets:filterRows yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      },
+      {
+        "id": "id-9",
+        "name": "Note: Email: Send Email",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1260,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Email: Send Email\nNo automatic conversion for email:ActionSendEmail yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      }
+    ],
+    "connections": {
+      "Schedule": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets: Filter Rows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Overdue": {
+        "main": [
+          [
+            {
+              "node": "HTTP request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets: Filter Rows": {
+        "main": [
+          [
+            {
+              "node": "Overdue",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP request": {
+        "main": [
+          [
+            {
+              "node": "Sleep",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sleep": {
+        "main": [
+          [
+            {
+              "node": "Email: Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "make",
+    "workflowName": "Daily overdue invoices",
+    "totals": {
+      "converted": 1,
+      "review": 1,
+      "manual": 2
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "Google Sheets: Filter Rows",
+        "sourceKey": "google-sheets:filterRows",
+        "n8nNodes": [
+          "Google Sheets: Filter Rows"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Rebuild \"Google Sheets: Filter Rows\" (google-sheets:filterRows) with the matching n8n node."
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "HTTP request",
+        "sourceKey": "http:ActionSendData",
+        "n8nNodes": [
+          "Overdue",
+          "HTTP request"
+        ],
+        "status": "review",
+        "notes": [
+          "Uses data from \"Google Sheets: Filter Rows\", which must be finished by hand first."
+        ]
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "Sleep",
+        "sourceKey": "util:FunctionSleep",
+        "n8nNodes": [
+          "Sleep"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Email: Send Email",
+        "sourceKey": "email:ActionSendEmail",
+        "n8nNodes": [
+          "Email: Send Email"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Rebuild \"Email: Send Email\" (email:ActionSendEmail) with the matching n8n node."
+      }
+    ],
+    "credentials": [],
+    "webhooks": [],
+    "placeholders": [],
+    "nextSteps": [
+      "Finish 2 steps by hand: they are disabled and marked ⚠, with a suggestion next to each.",
+      "Check 1 step marked \"review\".",
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}

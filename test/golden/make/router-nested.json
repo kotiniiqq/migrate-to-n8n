@@ -1,0 +1,436 @@
+{
+  "workflow": {
+    "name": "Route support tickets",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "route-support-tickets",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "webhookId": "id-2"
+      },
+      {
+        "id": "id-3",
+        "name": "Router",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "id-4",
+        "name": "HTTP request",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          780,
+          -80
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://billing.example.com/api/tickets",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-Source",
+                "value": "make"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={\"subject\": \"{{ $('Webhook').item.json.body.subject }}\", \"customer\": \"{{ $('Webhook').item.json.body.email }}\"}",
+          "options": {}
+        }
+      },
+      {
+        "id": "id-5",
+        "name": "Router 2",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          780,
+          100
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "id-6",
+        "name": "Slack: Create Message",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1300,
+          0
+        ],
+        "parameters": {},
+        "disabled": true
+      },
+      {
+        "id": "id-7",
+        "name": "Email: Send Email",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1040,
+          100
+        ],
+        "parameters": {},
+        "disabled": true
+      },
+      {
+        "id": "id-8",
+        "name": "Parse JSON",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          520,
+          180
+        ],
+        "parameters": {
+          "mode": "raw",
+          "jsonOutput": "={{ $('Webhook').item.json.body.meta }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "id-9",
+        "name": "Billing",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          520,
+          -180
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-10",
+                "leftValue": "={{ $('Webhook').item.json.body.category }}",
+                "rightValue": "billing",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-11",
+        "name": "Technical",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-12",
+                "leftValue": "={{ (String($('Webhook').item.json.body.category ?? '') === String(\"tech\" ?? '')) || (String(String($('Webhook').item.json.body.subject).toLowerCase() ?? '').toLowerCase().includes(String(\"error\" ?? '').toLowerCase())) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-13",
+        "name": "Urgent",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          1040,
+          -80
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-14",
+                "leftValue": "={{ $('Webhook').item.json.body.priority }}",
+                "rightValue": 3,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-15",
+        "name": "Note: Slack: Create Message",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1260,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Slack: Create Message\nNo automatic conversion for slack:CreateMessage yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      },
+      {
+        "id": "id-16",
+        "name": "Note: Email: Send Email",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1000,
+          -120
+        ],
+        "parameters": {
+          "content": "### ⚠ Email: Send Email\nNo automatic conversion for email:ActionSendEmail yet.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Router": {
+        "main": [
+          [
+            {
+              "node": "Billing",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Technical",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Parse JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Billing": {
+        "main": [
+          [
+            {
+              "node": "HTTP request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Technical": {
+        "main": [
+          [
+            {
+              "node": "Router 2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Router 2": {
+        "main": [
+          [
+            {
+              "node": "Urgent",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Email: Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Urgent": {
+        "main": [
+          [
+            {
+              "node": "Slack: Create Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "make",
+    "workflowName": "Route support tickets",
+    "totals": {
+      "converted": 5,
+      "review": 0,
+      "manual": 2
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "Webhook",
+        "sourceKey": "gateway:CustomWebHook",
+        "n8nNodes": [
+          "Webhook"
+        ],
+        "status": "converted",
+        "notes": [
+          "The webhook gets a new URL in n8n: point the sender (form, app) to it. Make accepted GET and POST; this listens to POST."
+        ]
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "Router",
+        "sourceKey": "builtin:BasicRouter",
+        "n8nNodes": [
+          "Router"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "HTTP request",
+        "sourceKey": "http:ActionSendData",
+        "n8nNodes": [
+          "Billing",
+          "HTTP request"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Router",
+        "sourceKey": "builtin:BasicRouter",
+        "n8nNodes": [
+          "Technical",
+          "Router 2"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "5",
+        "sourceLabel": "Slack: Create Message",
+        "sourceKey": "slack:CreateMessage",
+        "n8nNodes": [
+          "Urgent",
+          "Slack: Create Message"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Rebuild \"Slack: Create Message\" (slack:CreateMessage) with the matching n8n node."
+      },
+      {
+        "sourceId": "6",
+        "sourceLabel": "Email: Send Email",
+        "sourceKey": "email:ActionSendEmail",
+        "n8nNodes": [
+          "Email: Send Email"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Rebuild \"Email: Send Email\" (email:ActionSendEmail) with the matching n8n node."
+      },
+      {
+        "sourceId": "7",
+        "sourceLabel": "Parse JSON",
+        "sourceKey": "json:ParseJSON",
+        "n8nNodes": [
+          "Parse JSON"
+        ],
+        "status": "converted",
+        "notes": []
+      }
+    ],
+    "credentials": [],
+    "webhooks": [
+      {
+        "node": "Webhook",
+        "path": "route-support-tickets"
+      }
+    ],
+    "placeholders": [],
+    "nextSteps": [
+      "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/route-support-tickets).",
+      "Finish 2 steps by hand: they are disabled and marked ⚠, with a suggestion next to each.",
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}
