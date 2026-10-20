@@ -18,9 +18,9 @@ jobs:
           key: n8n-types-${{ hashFiles('scripts/fetch-n8n-types.ts') }}
       - run: npm ci
       - run: npm run n8n-types   # n8n's node catalogs, used by the tests only
+      - run: npm run build       # the packaging test looks at dist/
       - run: npm test
       - run: npm run typecheck
-      - run: npm run build
       - name: The package ships no n8n code
         run: "! npm pack --dry-run 2>&1 | grep -iE 'n8n-nodes|workflow-sdk|\.cache'"
 

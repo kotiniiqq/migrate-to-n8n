@@ -1,0 +1,46 @@
+name: release
+# On a version tag: test, build, pack the npm tarball and the Claude Desktop extension, attach them to a
+# GitHub release, then list the version in the official MCP Registry. The npm publish itself is done by the
+# maintainer before the tag is pushed.
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run n8n-types
+      - run: npm run build
+      - run: npm test
+      - run: npm run typecheck
+      - name: Tag matches the package version
+        run: test "${GITHUB_REF_NAME#v}" = "$(node -p 'require("./package.json").version')"
+      - run: npm pack
+      - run: npm run mcpb
+      - name: GitHub release with the files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" migrate-to-n8n-*.tgz out/migrate-to-n8n.mcpb --title "$GITHUB_REF_NAME" --generate-notes
+  registry:
+    # The official MCP Registry checks "mcpName" in the package on npm, so this runs after the maintainer has
+    # published the same version there.
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+      - run: ./mcp-publisher login github-oidc
+      - run: ./mcp-publisher publish

@@ -1,0 +1,18 @@
+# Smithery: run the published npm package over stdio.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      n8nUrl:
+        type: string
+        description: Your n8n address, to upload results (optional)
+      n8nApiKey:
+        type: string
+        description: n8n API key, to upload results (optional)
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'migrate-to-n8n', 'serve'],
+      env: { N8N_URL: config.n8nUrl || '', N8N_API_KEY: config.n8nApiKey || '' }
+    })
