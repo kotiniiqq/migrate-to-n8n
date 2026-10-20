@@ -147,8 +147,8 @@
         "type": "n8n-nodes-base.stickyNote",
         "typeVersion": 1,
         "position": [
-          1260,
-          -220
+          1200,
+          160
         ],
         "parameters": {
           "content": "### ⚠ Python step\nPython from Zapier: n8n runs it in the Code node, but reads inputs differently. Replace `input_data` with the item (`_item[\"json\"]` in n8n 2.x, `_input.item.json` in 1.x), keep `output`/`return` as a dict, then enable it.",

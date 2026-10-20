@@ -43,7 +43,8 @@
     "corpus": "tsx scripts/corpus.ts",
     "e2e": "tsx e2e/import.ts && tsx e2e/run.ts",
     "mcpb": "tsx scripts/build-mcpb.ts",
-    "n8n-apps": "tsx scripts/gen-n8n-apps.ts"
+    "n8n-apps": "tsx scripts/gen-n8n-apps.ts",
+    "readme": "tsx scripts/readme-blocks.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

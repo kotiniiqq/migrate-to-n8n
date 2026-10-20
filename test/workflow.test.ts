@@ -95,3 +95,24 @@ test('retry settings and onError are copied to the node', () => {
   assert.equal(a.maxTries, 3);
   assert.equal(a.waitBetweenTries, 5000);
 });
+
+test('sticky notes never cover a node, even in a crowded router', () => {
+  const nodes: PlannedNode[] = [node('hook'), node('router')];
+  const edges: PlannedEdge[] = [{ from: 'hook', to: 'router' }];
+  for (let i = 0; i < 4; i++) {
+    nodes.push(node(`a${i}`, i % 2 === 0 ? { disabled: true, note: 'Finish this step by hand: long explanation here.' } : {}), node(`b${i}`));
+    edges.push({ from: 'router', to: `a${i}` }, { from: `a${i}`, to: `b${i}` });
+  }
+  const { workflow } = buildWorkflow('Crowded', nodes, edges);
+  const NODE_W = 100;
+  const NODE_H = 140; // icon plus the name under it
+  const stickies = workflow.nodes.filter((n) => n.type === NODE.stickyNote.type);
+  const regular = workflow.nodes.filter((n) => n.type !== NODE.stickyNote.type);
+  assert.equal(stickies.length, 2);
+  const overlap = (a: number[], b: number[]) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+  for (const s of stickies) {
+    const sr = [s.position[0], s.position[1], Number(s.parameters.width), Number(s.parameters.height)];
+    for (const n of regular) assert.ok(!overlap(sr, [n.position[0], n.position[1], NODE_W, NODE_H]), `${s.name} covers ${n.name}`);
+    for (const o of stickies) if (o !== s) assert.ok(!overlap(sr, [o.position[0], o.position[1], Number(o.parameters.width), Number(o.parameters.height)]));
+  }
+});

@@ -1,0 +1,21 @@
+{
+  "name": "Lead routing",
+  "flow": [
+    { "id": 1, "module": "gateway:CustomWebHook", "version": 1, "parameters": { "hook": 1 }, "mapper": {}, "metadata": { "designer": { "x": 0, "y": 0, "name": "New lead" } } },
+    { "id": 2, "module": "util:SetVariable2", "version": 1, "mapper": { "name": "fullName", "scope": "roundtrip", "value": "{{capitalize(1.first_name)}} {{capitalize(1.last_name)}}" }, "metadata": { "designer": { "x": 300, "y": 0, "name": "Full name" } } },
+    { "id": 3, "module": "builtin:BasicRouter", "version": 1, "mapper": null, "metadata": { "designer": { "x": 600, "y": 0 } }, "routes": [
+      { "flow": [
+        { "id": 4, "module": "openai-gpt-3:CreateCompletion", "version": 1, "parameters": { "__IMTCONN__": 1 }, "filter": { "name": "Enterprise", "conditions": [[{ "a": "{{1.company_size}}", "o": "number:greater", "b": "200" }]] }, "mapper": { "select": "chat", "model": "gpt-4o-mini", "max_tokens": "300", "messages": [{ "role": "system", "content": "Write a short, friendly first reply to a sales lead." }, { "role": "user", "content": "{{2.fullName}} from {{1.company}} asks: {{1.message}}" }] }, "metadata": { "designer": { "x": 900, "y": -150, "name": "Draft a reply" } } },
+        { "id": 5, "module": "google-email:sendAnEmail", "version": 1, "parameters": { "__IMTCONN__": 2 }, "mapper": { "to": ["{{1.email}}"], "subject": "Thanks for reaching out, {{1.first_name}}", "bodyType": "rawHtml", "content": "{{4.choices[].message.content}}" }, "metadata": { "designer": { "x": 1200, "y": -150, "name": "Send the reply" } } }
+      ] },
+      { "flow": [
+        { "id": 6, "module": "google-sheets:addRow", "version": 2, "parameters": { "__IMTCONN__": 3 }, "mapper": { "mode": "select", "spreadsheetId": "/1LeadsSheetId", "sheetId": "Leads", "useColumnHeaders": true, "values": { "Name": "{{2.fullName}}", "Email": "{{1.email}}", "Company": "{{1.company}}", "Received": "{{formatDate(now; \"YYYY-MM-DD HH:mm\")}}" } }, "metadata": { "designer": { "x": 900, "y": 50, "name": "Log the lead" } } },
+        { "id": 7, "module": "slack:CreateMessage", "version": 4, "parameters": { "__IMTCONN__": 4 }, "mapper": { "channel": "C0SALES01", "text": "New lead: {{2.fullName}} ({{1.company}})", "channelType": "public", "channelWType": "list" }, "metadata": { "designer": { "x": 1200, "y": 50, "name": "Tell the team" } } }
+      ] },
+      { "flow": [
+        { "id": 8, "module": "app#crm-acme-0042:createContact", "version": 1, "parameters": { "__IMTCONN__": 5 }, "mapper": { "email": "{{1.email}}", "name": "{{2.fullName}}", "source": "website" }, "metadata": { "designer": { "x": 900, "y": 250, "name": "Add to our CRM" } } }
+      ] }
+    ] }
+  ],
+  "metadata": { "instant": true, "version": 1, "designer": { "orphans": [] }, "zone": "eu1.make.com" }
+}

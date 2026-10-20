@@ -106,9 +106,18 @@ export function buildWorkflow(name: string, planned: PlannedNode[], edges: Plann
     if (p.retry) Object.assign(node, { retryOnFail: true, maxTries: p.retry.maxTries, waitBetweenTries: p.retry.waitBetweenTries });
     nodes.push(node);
   }
+  // Sticky notes go next to their node, in the first spot that covers no node and no other note.
+  const NOTE_W = 320;
+  const NOTE_H = 200;
+  const boxes = nodes.map((n) => [n.position[0], n.position[1], 100, 140]);
+  const overlaps = (r: number[]) => boxes.some((b) => r[0] < b[0] + b[2] && b[0] < r[0] + r[2] && r[1] < b[1] + b[3] && b[1] < r[1] + r[3]);
   for (const p of planned) {
     if (!p.note) continue;
     const [x, y] = pos.get(p.key)!;
+    const candidates: Array<[number, number]> = [[x - 110, y + 160], [x - 110, y - 220], [x + 140, y - 50], [x - 470, y - 50]];
+    for (let k = 1; k <= 20; k++) candidates.push([x - 110, y + 160 + k * 220], [x - 110, y - 220 - k * 220]);
+    const at = candidates.find(([cx, cy]) => !overlaps([cx, cy, NOTE_W, NOTE_H])) ?? candidates[candidates.length - 1];
+    boxes.push([at[0], at[1], NOTE_W, NOTE_H]);
     const note = uniqueName(`Note: ${names.get(p.key)}`, taken);
     taken.add(note);
     nodes.push({
@@ -116,8 +125,8 @@ export function buildWorkflow(name: string, planned: PlannedNode[], edges: Plann
       name: note,
       type: NODE.stickyNote.type,
       typeVersion: NODE.stickyNote.typeVersion,
-      position: [x - 40, y - 220],
-      parameters: { content: `### ⚠ ${names.get(p.key)}\n${p.note}`, height: 200, width: 320, color: 3 },
+      position: [snap(at[0]), snap(at[1])],
+      parameters: { content: `### ⚠ ${names.get(p.key)}\n${p.note}`, height: NOTE_H, width: NOTE_W, color: 3 },
     });
   }
   const connections: N8nWorkflow['connections'] = {};

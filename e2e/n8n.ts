@@ -44,6 +44,11 @@ async function createKey(url: string): Promise<string> {
   const owner = { email: 'owner@example.com', firstName: 'E2E', lastName: 'Test', password: `E2e-${randomBytes(6).toString('hex')}A1` };
   const setup = await fetch(`${url}/rest/owner/setup`, { method: 'POST', headers: json, body: JSON.stringify(owner) });
   let cookie = setup.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+  if (setup.ok) {
+    // Kept next to the API key (gitignored) so the local test instance can be opened in a browser.
+    mkdirSync(join('.cache', 'e2e'), { recursive: true });
+    writeFileSync(join('.cache', 'e2e', `${new URL(url).port || '80'}.owner.json`), JSON.stringify({ email: owner.email, password: owner.password }));
+  }
   if (!setup.ok) {
     throw new Error(`owner setup failed (${setup.status}); start from fresh containers: docker compose -f docker-compose.e2e.yml down && up -d`);
   }

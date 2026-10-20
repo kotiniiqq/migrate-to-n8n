@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-20",
+  "make": {
+    "files": 1432,
+    "steps": 10063,
+    "share": {
+      "converted": 42.1,
+      "review": 38,
+      "manual": 19.9
+    },
+    "convertedOrReview": 80.1,
+    "filesWithCheckErrors": 0,
+    "filesWithCatalogErrors": 0,
+    "ms": {
+      "p50": 0.6502000000000407,
+      "max": 7.4576999999999884
+    }
+  },
+  "zapier": {
+    "files": 148,
+    "steps": 910,
+    "share": {
+      "converted": 12.6,
+      "review": 58.2,
+      "manual": 29.1
+    },
+    "convertedOrReview": 70.9,
+    "filesWithCheckErrors": 0,
+    "filesWithCatalogErrors": 0,
+    "ms": {
+      "p50": 0.16554200000000038,
+      "max": 3.2671000000000276
+    }
+  }
+}

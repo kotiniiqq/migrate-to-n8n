@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="250" viewBox="0 0 880 250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="880" height="250" rx="16" fill="#1b1829"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e2e0f0"/>
+    </marker>
+  </defs>
+
+  <g>
+    <rect x="28" y="52" width="220" height="146" rx="12" fill="#2a2540" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="138" y="88" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="600" letter-spacing="1">YOUR EXPORT</text>
+    <text x="138" y="122" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="600">Make blueprint</text>
+    <text x="138" y="146" text-anchor="middle" fill="#9a94b8" font-size="14">or</text>
+    <text x="138" y="170" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="600">Zapier export</text>
+  </g>
+
+  <line x1="256" y1="125" x2="322" y2="125" stroke="#e2e0f0" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="330" y="52" width="220" height="146" rx="12" fill="#2a2540" stroke="#e2e0f0" stroke-width="2"/>
+    <text x="440" y="88" text-anchor="middle" fill="#e2e0f0" font-size="13" font-weight="600" letter-spacing="1">MIGRATE-TO-N8N</text>
+    <text x="440" y="120" text-anchor="middle" fill="#ffffff" font-size="15">steps, routers, filters,</text>
+    <text x="440" y="142" text-anchor="middle" fill="#ffffff" font-size="15">formulas, error handling</text>
+    <text x="440" y="176" text-anchor="middle" fill="#9a94b8" font-size="13">runs on your computer</text>
+  </g>
+
+  <line x1="558" y1="125" x2="624" y2="125" stroke="#e2e0f0" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="632" y="52" width="220" height="146" rx="12" fill="#2a2540" stroke="#ea4b71" stroke-width="2"/>
+    <text x="742" y="88" text-anchor="middle" fill="#fda4b8" font-size="13" font-weight="600" letter-spacing="1">YOU GET</text>
+    <text x="742" y="118" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="600">n8n workflow + report</text>
+    <text x="662" y="148" fill="#86efac" font-size="14">✓ converted</text>
+    <text x="662" y="168" fill="#fde68a" font-size="14">! check this</text>
+    <text x="662" y="188" fill="#fda4b8" font-size="14">✎ finish by hand: how</text>
+  </g>
+</svg>
