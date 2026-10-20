@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { nodeRef } from '../../util/names.ts';
+import { httpMethod } from '../shared.ts';
 import { n8nNode, register, type MapCtx, type MapOutput } from '../registry.ts';
 
 type Pair = { name?: string; key?: string; value?: unknown };
@@ -59,8 +60,7 @@ function httpEntry(key: string, label: string, auth?: 'basic' | 'apiKey') {
     source: 'make', key, label,
     build(ctx): MapOutput {
       const p = ctx.step.params;
-      const method = (str(p.method) || 'get').toUpperCase();
-      const params: Record<string, unknown> = { method, url: ctx.expr(str(p.url)) };
+      const params: Record<string, unknown> = { method: httpMethod(p.method, ctx), url: ctx.expr(str(p.url)) };
       let credential: MapOutput['credential'];
       if (auth === 'apiKey') {
         params.authentication = 'genericCredentialType';
@@ -125,7 +125,7 @@ register({
   source: 'make', key: 'http:MakeRequest', label: 'HTTP Request',
   build(ctx): MapOutput {
     const p = ctx.step.params;
-    const params: Record<string, unknown> = { method: (str(p.method) || 'get').toUpperCase(), url: ctx.expr(str(p.url)) };
+    const params: Record<string, unknown> = { method: httpMethod(p.method, ctx), url: ctx.expr(str(p.url)) };
     let credential: MapOutput['credential'];
     const authType = str(p.authenticationType);
     if (authType && authType !== 'noAuth') {

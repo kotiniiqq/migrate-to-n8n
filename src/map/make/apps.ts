@@ -1,7 +1,7 @@
 /** Make app modules beyond Google: AI, messaging, Airtable, data stores, Apify, Perplexity, "Make an API call". */
 import { findApp } from '../apps.ts';
 import { n8nNode, register, type MapCtx, type MapOutput } from '../registry.ts';
-import { appRef, rl, str, urlWith } from '../shared.ts';
+import { appRef, httpMethod, rl, str, urlWith } from '../shared.ts';
 
 const num = (v: unknown): number | undefined => (v !== '' && v !== null && v !== undefined && Number.isFinite(Number(v)) ? Number(v) : undefined);
 const list = <T = Record<string, unknown>>(v: unknown): T[] => (Array.isArray(v) ? (v.filter((x) => x && typeof x === 'object') as T[]) : []);
@@ -328,7 +328,7 @@ register({
     const known = API_BASES[ctx.step.app] ?? findApp('make', ctx.step.app, false)?.apiBase;
     const path = str(p.url);
     const url = /^https?:\/\//.test(path) ? ctx.expr(path) : ctx.expr(`${known ?? 'https://REPLACE-ME.example'}${path.startsWith('/') ? '' : '/'}${path}`);
-    const params: Record<string, unknown> = { method: (str(p.method) || 'GET').toUpperCase(), url, authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth' };
+    const params: Record<string, unknown> = { method: httpMethod(p.method, ctx), url, authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth' };
     const headers = list<{ key?: unknown; name?: unknown; value?: unknown }>(p.headers).filter((h) => str(h.key ?? h.name)).map((h) => ({ name: str(h.key ?? h.name), value: ctx.expr(str(h.value)) }));
     if (headers.length) Object.assign(params, { sendHeaders: true, headerParameters: { parameters: headers } });
     const qs = list<{ key?: unknown; name?: unknown; value?: unknown }>(p.qs).filter((h) => str(h.key ?? h.name)).map((h) => ({ name: str(h.key ?? h.name), value: ctx.expr(str(h.value)) }));

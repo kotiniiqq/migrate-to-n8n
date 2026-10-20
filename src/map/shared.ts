@@ -19,3 +19,16 @@ export function urlWith(prefix: string, js: string, suffix = ''): string {
   if (JS_STRING.test(js)) return `${prefix}${encodeURIComponent(JSON.parse(js) as string).replace(/%2F/gi, '/')}${suffix}`;
   return `={{ '${prefix}' + encodeURIComponent(${js}) + '${suffix}' }}`;
 }
+
+const METHODS = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'];
+
+/** An HTTP method for the n8n HTTP Request node: a known verb, or an expression when the source used a formula. */
+export function httpMethod(v: unknown, ctx: { expr(v: unknown): unknown; js(v: unknown): string; note(t: string, review?: boolean): void }, fallback = 'GET'): string {
+  const s = str(v).trim();
+  if (!s) return fallback;
+  if (s.includes('{{')) return `={{ String(${ctx.js(s)}).toUpperCase() }}`;
+  const m = s.toUpperCase();
+  if (METHODS.includes(m)) return m;
+  ctx.note(`The HTTP method "${m}" is not available in n8n; it is set to ${fallback}.`, true);
+  return fallback;
+}

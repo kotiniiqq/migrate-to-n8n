@@ -121,3 +121,11 @@ test('Data store and increment', () => {
   assert.equal(inc.node.type, 'n8n-nodes-base.code');
   assert.match(String(p(inc.node).jsCode), /getWorkflowStaticData/);
 });
+
+test('an HTTP method given by a formula stays an expression; an unknown method falls back to GET with a note', () => {
+  const f = oneMake('onedrive:makeApiCall', { url: '/me', method: '{{1.METHOD}}' });
+  assert.equal(p(f.node).method, `={{ String(${W}.METHOD).toUpperCase() }}`);
+  const odd = oneMake('http:ActionSendData', { url: 'https://x.io', method: 'fetch' });
+  assert.equal(p(odd.node).method, 'GET');
+  assert.match(odd.step.notes.join(' '), /FETCH/);
+});

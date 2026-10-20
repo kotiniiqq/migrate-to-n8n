@@ -6,6 +6,7 @@ import { criteria } from '../../zapier/parse.ts';
 import { nodeRef } from '../../util/names.ts';
 import { conditionParameters, ZAPIER_OPS } from '../conditions.ts';
 import { n8nNode, register, type MapCtx, type MapOutput } from '../registry.ts';
+import { httpMethod } from '../shared.ts';
 
 const str = (v: unknown) => (v === undefined || v === null ? '' : String(v));
 const dict = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -56,7 +57,7 @@ function request(action: string, method: string | null) {
     source: 'zapier', key: `WebHookCLIAPI:${action}`, label: 'HTTP Request',
     build(ctx): MapOutput {
       const p = ctx.step.params;
-      const m = method ?? (str(p.method) || 'POST').toUpperCase();
+      const m = method ?? httpMethod(p.method, ctx, 'POST');
       const params: Record<string, unknown> = { method: m, url: ctx.expr(str(p.url)) };
       const query = pairs(p.params, ctx);
       if (query.length) Object.assign(params, { sendQuery: true, queryParameters: { parameters: query } });
