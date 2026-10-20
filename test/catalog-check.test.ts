@@ -21,3 +21,11 @@ test('the catalog check catches unknown parameters, wrong option values, hidden 
 test('the catalog check reports a type version n8n does not have', () => {
   assert.match(nodeIssues('1.123.85', { ...http({}), typeVersion: 9 }).join(''), /not in n8n/);
 });
+
+test('display rules with a version range are understood', () => {
+  const sheets = (typeVersion: number) => ({
+    name: 'Sheets', type: 'n8n-nodes-base.googleSheets', typeVersion,
+    parameters: { resource: 'sheet', operation: 'update', columns: { mappingMode: 'defineBelow', value: {}, matchingColumns: [], schema: [] } },
+  });
+  assert.deepEqual(nodeIssues('2.44.4', sheets(4.5)), []);
+});

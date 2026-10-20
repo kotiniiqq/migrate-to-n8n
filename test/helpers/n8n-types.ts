@@ -68,8 +68,9 @@ type Prop = Record<string, any>;
 
 function versionMatches(cond: unknown, version: number): boolean {
   if (typeof cond === 'number') return cond === version;
-  const c = (cond as { _cnd?: Record<string, number> })?._cnd;
+  const c = (cond as { _cnd?: Record<string, any> })?._cnd;
   if (!c) return false;
+  if ('between' in c) return version >= c.between.from && version <= c.between.to;
   if ('gte' in c) return version >= c.gte;
   if ('lte' in c) return version <= c.lte;
   if ('gt' in c) return version > c.gt;

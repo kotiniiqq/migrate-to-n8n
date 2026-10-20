@@ -76,3 +76,19 @@ test('wrong input gives a one-line InputError that says what was expected', () =
 test('a Zapier export given to the Make parser points to the Zapier converter', () => {
   assert.throws(() => parseMake({ metadata: {}, zaps: [{ nodes: { 1: { selected_api: 'SlackCLIAPI' } } }] }), (e: unknown) => e instanceof InputError && /Zapier/.test((e as Error).message));
 });
+
+test('output and input field labels from the module metadata are kept', () => {
+  const g = parseMake({
+    name: 'x',
+    flow: [{
+      id: 1, module: 'google-sheets:filterRows', version: 2, mapper: {},
+      metadata: {
+        designer: { x: 0, y: 0 },
+        interface: [{ name: '__ROW_NUMBER__', label: 'Row number' }, { name: '0', label: 'Name (A)' }, { name: '1', label: 'Email (B)', type: 'text' }],
+        expect: [{ name: 'values', spec: [{ name: '0', label: 'Name (A)' }, { name: '1', label: 'Email (B)' }] }],
+      },
+    }],
+  });
+  assert.deepEqual(g.steps[0].outputFields, [{ name: '__ROW_NUMBER__', label: 'Row number' }, { name: '0', label: 'Name (A)' }, { name: '1', label: 'Email (B)' }]);
+  assert.deepEqual(g.steps[0].inputFields, { values: [{ name: '0', label: 'Name (A)' }, { name: '1', label: 'Email (B)' }] });
+});

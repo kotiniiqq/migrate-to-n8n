@@ -6,7 +6,11 @@ type MakeModule = {
   module: string;
   parameters?: Record<string, unknown> | null;
   mapper?: Record<string, unknown> | null;
-  metadata?: { designer?: { x?: number; y?: number; name?: string } };
+  metadata?: {
+    designer?: { x?: number; y?: number; name?: string };
+    interface?: Array<{ name?: unknown; label?: unknown }>;
+    expect?: Array<{ name?: unknown; spec?: unknown }>;
+  };
   filter?: { name?: string; conditions?: Array<Array<{ a?: unknown; o?: string; b?: unknown }>> } | null;
   onerror?: MakeModule[];
   routes?: Array<{ flow?: MakeModule[] }>;
@@ -92,6 +96,15 @@ function toStep(m: MakeModule): SourceStep {
   const step: SourceStep = { id: String(m.id), key, app, action, label: d?.name?.trim() || makeLabel(key), params };
   if (typeof d?.x === 'number' && typeof d?.y === 'number') step.position = [d.x, d.y];
   if (connectionRef) step.connectionRef = connectionRef;
+  const labelled = (list: unknown) => (Array.isArray(list) ? list : [])
+    .filter((f) => f && typeof f === 'object' && f.name !== undefined && f.label !== undefined)
+    .map((f) => ({ name: String(f.name), label: String(f.label) }));
+  const out = labelled(m.metadata?.interface);
+  if (out.length) step.outputFields = out;
+  for (const e of m.metadata?.expect ?? []) {
+    const spec = labelled(e?.spec);
+    if (e?.name !== undefined && spec.length) (step.inputFields ??= {})[String(e.name)] = spec;
+  }
   if (m.onerror?.length) {
     const directives = m.onerror.filter((h) => String(h.module).startsWith('builtin:'));
     const others = m.onerror.filter((h) => !String(h.module).startsWith('builtin:'));

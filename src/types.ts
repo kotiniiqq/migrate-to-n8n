@@ -29,6 +29,10 @@ export interface SourceStep {
   /** Module keys of a Make error-handler route that does more than one directive. */
   errorHandler?: string[];
   connectionRef?: string;
+  /** Output fields as the source labels them (Make module metadata), e.g. `0` → "Name (A)". */
+  outputFields?: Array<{ name: string; label: string }>;
+  /** Labels of the sub-fields of an input, e.g. the columns behind `values`. */
+  inputFields?: Record<string, Array<{ name: string; label: string }>>;
 }
 
 export interface SourceEdge {
