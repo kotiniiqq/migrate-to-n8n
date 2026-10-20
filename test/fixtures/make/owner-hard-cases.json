@@ -1,0 +1,379 @@
+{
+    "name": "migrate-to-n8n test: hard cases",
+    "flow": [
+        {
+            "id": 1,
+            "module": "gateway:CustomWebHook",
+            "version": 1,
+            "parameters": {
+                "hook": null,
+                "maxResults": 1
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 300,
+                    "messages": [
+                        {
+                            "category": "setupreq",
+                            "severity": "error",
+                            "message": "Webhook: Value must not be empty."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": 2,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "scope": "roundtrip",
+                "variables": [
+                    {
+                        "name": "when",
+                        "value": "{{formatDate(parseDate(1.date; \"DD.MM.YYYY\"); \"YYYY-MM-DD\")}}"
+                    },
+                    {
+                        "name": "label",
+                        "value": "{{if(1.vip = true; upper(1.name); ifempty(1.nick; \"guest\"))}}"
+                    },
+                    {
+                        "name": "domain",
+                        "value": "{{get(split(1.email; \"@\"); 2)}}"
+                    }
+                ]
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 300
+                }
+            }
+        },
+        {
+            "id": 3,
+            "module": "builtin:BasicRouter",
+            "version": 1,
+            "mapper": null,
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 300
+                }
+            },
+            "routes": [
+                {
+                    "flow": [
+                        {
+                            "id": 4,
+                            "module": "builtin:BasicFeeder",
+                            "version": 1,
+                            "parameters": {},
+                            "filter": {
+                                "name": "Orders",
+                                "conditions": [
+                                    [
+                                        {
+                                            "a": "{{1.kind}}",
+                                            "o": "text:contain:ci",
+                                            "b": "order"
+                                        },
+                                        {
+                                            "a": "{{length(1.items)}}",
+                                            "o": "number:greater",
+                                            "b": "0"
+                                        }
+                                    ],
+                                    [
+                                        {
+                                            "a": "{{1.force}}",
+                                            "o": "boolean:equal",
+                                            "b": "true"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "mapper": {
+                                "array": "{{1.items}}"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 900,
+                                    "y": 0
+                                }
+                            }
+                        },
+                        {
+                            "id": 5,
+                            "module": "util:SetVariable2",
+                            "version": 1,
+                            "parameters": {},
+                            "mapper": {
+                                "name": "line",
+                                "scope": "roundtrip",
+                                "value": "{{4.sku}}: {{round(4.price * 4.qty; 2)}} ({{replace(4.title; \"_\"; \" \")}})"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1200,
+                                    "y": 0
+                                }
+                            }
+                        },
+                        {
+                            "id": 6,
+                            "module": "builtin:BasicAggregator",
+                            "version": 1,
+                            "parameters": {
+                                "feeder": 4
+                            },
+                            "mapper": {
+                                "line": "{{5.line}}",
+                                "total": "{{4.price * 4.qty}}"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1500,
+                                    "y": 0
+                                }
+                            }
+                        },
+                        {
+                            "id": 7,
+                            "module": "http:ActionSendData",
+                            "version": 3,
+                            "parameters": {
+                                "handleErrors": true
+                            },
+                            "mapper": {
+                                "url": "https://example.com/api/orders",
+                                "method": "post",
+                                "bodyType": "raw",
+                                "contentType": "application/json",
+                                "data": "{\"lines\": \"{{join(map(6.array; \"line\"); \"; \")}}\", \"total\": {{sum(map(6.array; \"total\"))}}, \"when\": \"{{2.when}}\"}",
+                                "headers": [
+                                    {
+                                        "name": "X-Label",
+                                        "value": "{{2.label}}"
+                                    }
+                                ],
+                                "qs": []
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1800,
+                                    "y": 0
+                                }
+                            },
+                            "onerror": [
+                                {
+                                    "id": 20,
+                                    "module": "builtin:Break",
+                                    "version": 1,
+                                    "parameters": {
+                                        "count": 3,
+                                        "interval": 15
+                                    },
+                                    "mapper": {},
+                                    "metadata": {
+                                        "designer": {
+                                            "x": 1800,
+                                            "y": 200,
+                                            "messages": [
+                                                {
+                                                    "category": "badsettings",
+                                                    "severity": "error",
+                                                    "message": "This directive requires storing of incomplete executions to be enabled."
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "flow": [
+                        {
+                            "id": 8,
+                            "module": "json:ParseJSON",
+                            "version": 1,
+                            "parameters": {
+                                "type": ""
+                            },
+                            "filter": {
+                                "name": "Has meta",
+                                "conditions": [
+                                    [
+                                        {
+                                            "a": "{{1.meta}}",
+                                            "o": "exist"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "mapper": {
+                                "json": "{{1.meta}}"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 900,
+                                    "y": 300
+                                }
+                            }
+                        },
+                        {
+                            "id": 9,
+                            "module": "util:Switcher",
+                            "version": 1,
+                            "parameters": {},
+                            "mapper": {
+                                "input": "{{8.status}}",
+                                "casesTable": [
+                                    {
+                                        "pattern": "new",
+                                        "output": "Fresh"
+                                    },
+                                    {
+                                        "pattern": "done",
+                                        "output": "Closed"
+                                    }
+                                ],
+                                "elseOutput": "Other",
+                                "useRegexpMatch": false
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1200,
+                                    "y": 300
+                                }
+                            }
+                        },
+                        {
+                            "id": 10,
+                            "module": "gateway:WebhookRespond",
+                            "version": 1,
+                            "parameters": {},
+                            "mapper": {
+                                "status": "200",
+                                "body": "{\"state\": \"{{9.output}}\", \"domain\": \"{{2.domain}}\"}",
+                                "headers": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ]
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1500,
+                                    "y": 300
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "flow": [
+                        {
+                            "id": 11,
+                            "module": "util:TextAggregator",
+                            "version": 1,
+                            "parameters": {
+                                "rowSeparator": "\n"
+                            },
+                            "mapper": {
+                                "value": "{{2.label}} / {{2.when}}"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 900,
+                                    "y": 600,
+                                    "messages": [
+                                        {
+                                            "category": "source",
+                                            "severity": "error",
+                                            "message": "Source node is not set."
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "id": 12,
+                            "module": "util:FunctionSleep",
+                            "version": 1,
+                            "parameters": {},
+                            "mapper": {
+                                "duration": "2"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1200,
+                                    "y": 600
+                                }
+                            },
+                            "onerror": [
+                                {
+                                    "id": 21,
+                                    "module": "util:SetVariable2",
+                                    "version": 1,
+                                    "parameters": {},
+                                    "mapper": {
+                                        "name": "failed",
+                                        "scope": "roundtrip",
+                                        "value": "yes"
+                                    },
+                                    "metadata": {
+                                        "designer": {
+                                            "x": 1200,
+                                            "y": 800
+                                        }
+                                    }
+                                },
+                                {
+                                    "id": 22,
+                                    "module": "builtin:Resume",
+                                    "version": 1,
+                                    "parameters": {},
+                                    "mapper": {},
+                                    "metadata": {
+                                        "designer": {
+                                            "x": 1500,
+                                            "y": 800
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "instant": true,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "eu1.make.com",
+        "notes": []
+    }
+}

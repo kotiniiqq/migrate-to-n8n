@@ -25,6 +25,17 @@ const CASES: Case[] = [
     ],
   },
   {
+    // A real export from Make (2026-10-21): routers with OR/AND filters, variables, Switch, error handlers.
+    fixture: 'test/fixtures/make/owner-hard-cases.json',
+    calls: [
+      {
+        body: { kind: 'info', force: false, items: [], date: '20.10.2026', vip: true, name: 'anna', email: 'anna@example.org', meta: '{"status": "new"}' },
+        status: 200,
+        expect: (t) => assert.deepEqual(JSON.parse(t), { state: 'Fresh', domain: 'example.org' }),
+      },
+    ],
+  },
+  {
     fixture: 'test/e2e/make-iterator.json',
     calls: [{ body: { items: [{ name: 'a', price: 1 }, { name: 'b', price: 2.5 }] }, status: 200, expect: (t) => assert.equal(t, 'a: 2, b: 5') }],
   },
