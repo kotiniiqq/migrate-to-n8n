@@ -53,8 +53,34 @@
           520,
           0
         ],
-        "parameters": {},
-        "disabled": true
+        "parameters": {
+          "resource": "sheet",
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "1AbCdEfGhIjKlMnOpQrStUvWxYz"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Leads"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "A": "={{ $('Set variable').item.json.fullName }}",
+              "B": "={{ $('Form submitted').item.json.body.email }}",
+              "C": "={{ $now.toFormat('yyyy-LL-dd HH:mm') }}",
+              "D": "={{ ($('Form submitted').item.json.body.company || \"—\") }}"
+            },
+            "matchingColumns": [],
+            "schema": []
+          },
+          "options": {
+            "cellFormat": "USER_ENTERED"
+          }
+        }
       },
       {
         "id": "id-6",
@@ -79,22 +105,6 @@
               ]
             }
           }
-        }
-      },
-      {
-        "id": "id-7",
-        "name": "Note: Google Sheets: Add Row",
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          480,
-          -220
-        ],
-        "parameters": {
-          "content": "### ⚠ Google Sheets: Add Row\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Add row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1AbCdEfGhIjKlMnOpQrStUvWxYz; sheetId ← Leads; includesHeaders ← true; insertDataOption ← INSERT_ROWS; valueInputOption ← USER_ENTERED; values ← {\"0\":\"={{ $('Set variable').item.json.fullName }}\",\"1\":\"={{ $('Form submitted').item.json.body.email }}\",\"2\":\"={{ $no….",
-          "height": 200,
-          "width": 320,
-          "color": 3
         }
       }
     ],
@@ -143,8 +153,8 @@
     "workflowName": "Leads from the website form",
     "totals": {
       "converted": 2,
-      "review": 1,
-      "manual": 1
+      "review": 2,
+      "manual": 0
     },
     "steps": [
       {
@@ -176,9 +186,10 @@
         "n8nNodes": [
           "Google Sheets: Add Row"
         ],
-        "status": "manual",
-        "notes": [],
-        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Add row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1AbCdEfGhIjKlMnOpQrStUvWxYz; sheetId ← Leads; includesHeaders ← true; insertDataOption ← INSERT_ROWS; valueInputOption ← USER_ENTERED; values ← {\"0\":\"={{ $('Set variable').item.json.fullName }}\",\"1\":\"={{ $('Form submitted').item.json.body.email }}\",\"2\":\"={{ $no…."
+        "status": "review",
+        "notes": [
+          "Make wrote these columns by position (A, B, C…); n8n writes by column header: open the node, pick the sheet and map each value to its header."
+        ]
       },
       {
         "sourceId": "4",
@@ -189,11 +200,19 @@
         ],
         "status": "review",
         "notes": [
-          "Uses data from \"Google Sheets: Add Row\", which must be finished by hand first."
+          "Check the fields read from \"Google Sheets: Add Row\": the n8n Google Sheets node may name them differently. Original: {\"ok\": true, \"row\": \"{{3.tableName}}\"}"
         ]
       }
     ],
-    "credentials": [],
+    "credentials": [
+      {
+        "app": "Google Sheets",
+        "credentialType": "googleSheetsOAuth2Api",
+        "nodes": [
+          "Google Sheets: Add Row"
+        ]
+      }
+    ],
     "webhooks": [
       {
         "node": "Form submitted",
@@ -202,9 +221,9 @@
     ],
     "placeholders": [],
     "nextSteps": [
+      "Connect credentials in n8n for: Google Sheets.",
       "Point the senders to the new webhook URL: \"Form submitted\" (…/webhook/leads-from-the-website-form).",
-      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
-      "Check 1 step marked \"review\".",
+      "Check 2 steps marked \"review\".",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

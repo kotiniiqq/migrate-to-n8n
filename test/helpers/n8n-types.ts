@@ -115,7 +115,8 @@ export function nodeIssues(n8n: N8nVersion, node: { name: string; type: string; 
     const p = visible[0];
     if (p.type === 'options' && !isExpression(value)) {
       const allowed = (p.options ?? []).map((o: Prop) => o.value);
-      if (!allowed.includes(value)) issues.push(`${where}: "${key}" = ${JSON.stringify(value)} is not one of ${JSON.stringify(allowed)}`);
+      // Options loaded at run time (sheet columns, channels…) have no list in the catalog.
+      if (allowed.length && !allowed.includes(value)) issues.push(`${where}: "${key}" = ${JSON.stringify(value)} is not one of ${JSON.stringify(allowed)}`);
     }
     if ((p.type === 'collection' || p.type === 'fixedCollection') && value && typeof value === 'object' && !Array.isArray(value)) {
       const names = (p.options ?? []).map((o: Prop) => o.name);

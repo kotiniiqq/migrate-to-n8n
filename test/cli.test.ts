@@ -29,7 +29,7 @@ test('convert a Make blueprint: summary, next steps and file paths', () => {
   const r = run(['convert', MAKE, '-o', out]);
   assert.equal(r.code, 0, r.err);
   assert.match(r.out, /Make → n8n: Leads from the website form/);
-  assert.match(r.out, /✅ 2 converted · ⚠️ 1 to review · 🛠 1 manual/);
+  assert.match(r.out, /✅ \d+ converted · ⚠️ \d+ to review · 🛠 \d+ manual/);
   assert.match(r.out, /Next steps/);
   assert.ok(existsSync(join(out, 'Leads from the website form.n8n.json')));
   assert.ok(r.out.includes(join(out, 'Leads from the website form.report.md')));

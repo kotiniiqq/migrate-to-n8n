@@ -33,6 +33,14 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   microsoftExcel: { type: 'n8n-nodes-base.microsoftExcel', typeVersion: 2.2 },
   rssFeedRead: { type: 'n8n-nodes-base.rssFeedRead', typeVersion: 1.2 },
   openAi: { type: '@n8n/n8n-nodes-langchain.openAi', typeVersion: 2.1 },
+  googleSheetsTrigger: { type: 'n8n-nodes-base.googleSheetsTrigger', typeVersion: 1 },
+  googleDrive: { type: 'n8n-nodes-base.googleDrive', typeVersion: 3 },
+  googleDocs: { type: 'n8n-nodes-base.googleDocs', typeVersion: 2 },
+  discord: { type: 'n8n-nodes-base.discord', typeVersion: 2 },
+  supabase: { type: 'n8n-nodes-base.supabase', typeVersion: 1 },
+  googleGemini: { type: '@n8n/n8n-nodes-langchain.googleGemini', typeVersion: 1 },
+  anthropic: { type: '@n8n/n8n-nodes-langchain.anthropic', typeVersion: 1 },
+  telegramTrigger: { type: 'n8n-nodes-base.telegramTrigger', typeVersion: 1.2 },
 };
 
 // ---------- the mapping table ----------
