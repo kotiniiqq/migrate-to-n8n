@@ -7,7 +7,7 @@ import { nodeRef } from '../util/names.ts';
 
 export interface ZapierExprCtx {
   refName(stepId: string): string | undefined;
-  refBase?(stepId: string, firstField?: string): { base: string; drop: number } | undefined;
+  refBase?(stepId: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
 }
 
 class Unsupported extends Error {}
@@ -28,14 +28,15 @@ function path(base: string, segs: Seg[]): string {
   return js;
 }
 
-function ref(id: string, segs: Seg[], ctx: ZapierExprCtx): string {
+function ref(id: string, segs: Seg[], ctx: ZapierExprCtx, notes: string[]): string {
   const first = segs[0]?.k === 'prop' ? segs[0].name : undefined;
-  let custom: { base: string; drop: number } | undefined;
+  let custom: { base: string; drop: number; note?: string } | undefined;
   try {
     custom = ctx.refBase?.(id, first);
   } catch (e) {
     throw new Unsupported((e as Error).message);
   }
+  if (custom?.note && !notes.includes(custom.note)) notes.push(custom.note);
   if (custom) return path(custom.base, segs.slice(custom.drop));
   const name = ctx.refName(id);
   if (name === undefined) throw new Unsupported(`step ${id} is not in the converted workflow`);
@@ -62,7 +63,7 @@ function token(body: string, ctx: ZapierExprCtx, notes: string[]): string {
   if (bracket) {
     const keys = [...bracket[1].matchAll(/\[\s*(?:'([^']*)'|"([^"]*)")\s*\]/g)].map((m) => m[1] ?? m[2]);
     const [id, ...rest] = keys;
-    return ref(id, rest.map((name) => ({ k: 'prop', name }) as Seg), ctx);
+    return ref(id, rest.map((name) => ({ k: 'prop', name }) as Seg), ctx, notes);
   }
   if (t.startsWith('=')) throw new Unsupported('custom JavaScript in a Zapier field');
   // {{1__a__b}}, {{1__list__0}}, {{1__choices[]text}}
@@ -78,7 +79,7 @@ function token(body: string, ctx: ZapierExprCtx, notes: string[]): string {
       else segs.push({ k: 'prop', name: p });
     });
   }
-  return ref(m[1], segs, ctx);
+  return ref(m[1], segs, ctx, notes);
 }
 
 function split(src: string): Array<{ text: string } | { expr: string }> {

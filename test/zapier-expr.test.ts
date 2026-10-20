@@ -63,3 +63,11 @@ test('references can be rewritten by the step that produced them', () => {
   const refBase = (id: string) => (id === '1' ? { base: `${L}.body`, drop: 0 } : undefined);
   assert.equal(translateZapierExpr('{{1__email}}', { ...ctx, refBase }).value, `={{ ${L}.body.email }}`);
 });
+
+test('a reference rewrite can attach a note: translated but flagged', () => {
+  const refBase = () => ({ base: "$('Slack').item.json", drop: 0, note: 'Check the field.' });
+  const r = translateZapierExpr('{{9__ts}}', { refName: () => 'Slack', refBase });
+  assert.equal(r.value, "={{ $('Slack').item.json.ts }}");
+  assert.equal(r.ok, false);
+  assert.match(r.notes.join(' '), /Check the field/);
+});

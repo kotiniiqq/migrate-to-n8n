@@ -141,3 +141,11 @@ test('translateMakeJs: an untranslatable value stays a string literal and is not
   assert.equal(r.js, '"{{99.x}}"');
   assert.equal(r.ok, false);
 });
+
+test('a reference rewrite can attach a note: the formula is translated but flagged', () => {
+  const refBase = () => ({ base: "$('Sheet').item.json", drop: 0, note: 'Check the column name.' });
+  const r = translateMakeExpr('{{2.Email}}', { refName: () => 'Sheet', refBase });
+  assert.equal(r.value, "={{ $('Sheet').item.json.Email }}");
+  assert.equal(r.ok, false);
+  assert.match(r.notes.join(' '), /Check the column name/);
+});

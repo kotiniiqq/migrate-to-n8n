@@ -70,7 +70,7 @@ export interface MapOutput {
   webhookPath?: string;
   placeholders?: Array<{ field: string; value: string }>;
   /** How formulas read this step's output, when not `$('Out').item.json.<path>`. May throw to refuse a field. */
-  ref?(outName: string, firstField?: string): { base: string; drop: number } | undefined;
+  ref?(outName: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
   /** Source variables this step sets; later reads point to the output node. */
   sets?: string[];
 }

@@ -21,7 +21,7 @@ import { InputError } from './types.ts';
 
 export interface RefCtx {
   refName(id: string): string | undefined;
-  refBase?(id: string, firstField?: string): { base: string; drop: number } | undefined;
+  refBase?(id: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
 }
 
 interface Dialect {

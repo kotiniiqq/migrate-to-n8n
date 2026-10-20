@@ -10,7 +10,7 @@ export interface MakeExprCtx {
   refName(moduleId: string): string | undefined;
   /** How a step exposes its output, when it is not `$('Name').item.json.<path>`: another base expression, and
    *  how many leading path fields to drop (an HTTP response's `data`). May throw to refuse a field. */
-  refBase?(moduleId: string, firstField?: string): { base: string; drop: number } | undefined;
+  refBase?(moduleId: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
 }
 
 export interface Translated {
@@ -460,12 +460,13 @@ class Printer {
       }
       case 'ref': {
         const first = n.path[0]?.k === 'prop' ? n.path[0].name : undefined;
-        let custom: { base: string; drop: number } | undefined;
+        let custom: { base: string; drop: number; note?: string } | undefined;
         try {
           custom = this.ctx.refBase?.(n.id, first);
         } catch (e) {
           throw new Unsupported((e as Error).message);
         }
+        if (custom?.note && !this.notes.includes(custom.note)) this.notes.push(custom.note);
         if (custom) return any(this.path(custom.base, n.path.slice(custom.drop)));
         const name = this.ctx.refName(n.id);
         if (name === undefined) throw new Unsupported(`module ${n.id} is not in the converted workflow`);
