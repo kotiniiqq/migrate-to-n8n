@@ -1,0 +1,57 @@
+{
+  "name": "migrate-to-n8n",
+  "version": "0.1.0",
+  "description": "Convert Make and Zapier automations into n8n workflows, with a report of what to check. MCP server and CLI.",
+  "mcpName": "io.github.kotiniiqq/migrate-to-n8n",
+  "author": "Kyrylo Kalashnyk <kotiniiqq@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/kotiniiqq/migrate-to-n8n#readme",
+  "bugs": "https://github.com/kotiniiqq/migrate-to-n8n/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kotiniiqq/migrate-to-n8n.git"
+  },
+  "keywords": [
+    "n8n",
+    "make",
+    "make.com",
+    "integromat",
+    "zapier",
+    "migration",
+    "mcp",
+    "mcp-server",
+    "automation",
+    "workflow"
+  ],
+  "type": "module",
+  "bin": {
+    "migrate-to-n8n": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "n8n-types": "tsx scripts/fetch-n8n-types.ts",
+    "corpus": "tsx scripts/corpus.ts",
+    "e2e": "tsx e2e/import.ts && tsx e2e/run.ts",
+    "mcpb": "tsx scripts/build-mcpb.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@n8n/workflow-sdk": "^0.37.1",
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
