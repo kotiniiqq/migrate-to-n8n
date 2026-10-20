@@ -275,7 +275,8 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     }
   }
 
-  const { workflow } = buildWorkflow(g.name, planned, edges);
+  // n8n accepts workflow names of up to 128 characters.
+  const { workflow } = buildWorkflow([...g.name].slice(0, 128).join('').trim() || 'Workflow', planned, edges);
   const steps = [...outs.values()].map((o) => o.report);
   const totals: Record<Status, number> = { converted: 0, review: 0, manual: 0 };
   for (const s of steps) totals[s.status]++;

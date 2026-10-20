@@ -56,3 +56,12 @@ test('upload config comes from N8N_URL and N8N_API_KEY; unfilled settings count 
   assert.equal(uploadConfig({ N8N_URL: '${user_config.n8n_url}', N8N_API_KEY: '${user_config.n8n_api_key}' }), null);
   assert.equal(uploadConfig({ N8N_URL: '', N8N_API_KEY: '' }), null);
 });
+
+test('names longer than n8n allows (128 characters) are shortened, in the file and on upload', async () => {
+  const long = { ...JSON.parse(readFileSync(new URL('./fixtures/make/scheduled.json', import.meta.url), 'utf8')), name: 'N'.repeat(300) };
+  const res = convertMake(long);
+  assert.ok(res.workflow.name.length <= 128);
+  const r = await uploadWorkflow(res.workflow, { url: mock.url, apiKey: mock.apiKey });
+  assert.ok(mock.store.get(r.id).name.length <= 128);
+  assert.match(mock.store.get(r.id).name, / \(migrated\)$/);
+});

@@ -1,0 +1,11 @@
+{
+  "name": "E2E iterator and aggregator",
+  "flow": [
+    { "id": 1, "module": "gateway:CustomWebHook", "version": 1, "parameters": { "hook": 1 }, "mapper": {}, "metadata": { "designer": { "x": 0, "y": 0 } } },
+    { "id": 2, "module": "builtin:BasicFeeder", "version": 1, "mapper": { "array": "{{1.items}}" }, "metadata": { "designer": { "x": 300, "y": 0 } } },
+    { "id": 3, "module": "util:SetVariable2", "version": 1, "mapper": { "name": "line", "scope": "roundtrip", "value": "{{2.name}}: {{2.price * 2}}" }, "metadata": { "designer": { "x": 600, "y": 0 } } },
+    { "id": 4, "module": "builtin:BasicAggregator", "version": 1, "parameters": { "feeder": 2 }, "mapper": { "line": "{{3.line}}" }, "metadata": { "designer": { "x": 900, "y": 0 } } },
+    { "id": 5, "module": "gateway:WebhookRespond", "version": 1, "mapper": { "status": "200", "body": "{{join(map(4.array; \"line\"); \", \")}}" }, "metadata": { "designer": { "x": 1200, "y": 0 } } }
+  ],
+  "metadata": { "instant": true, "version": 1 }
+}

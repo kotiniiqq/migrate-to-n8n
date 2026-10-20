@@ -1,0 +1,12 @@
+{
+  "name": "E2E formulas and router",
+  "flow": [
+    { "id": 1, "module": "gateway:CustomWebHook", "version": 1, "parameters": { "hook": 1 }, "mapper": {}, "metadata": { "designer": { "x": 0, "y": 0 } } },
+    { "id": 2, "module": "util:SetVariable2", "version": 1, "mapper": { "name": "greeting", "scope": "roundtrip", "value": "Hi {{upper(1.name)}}, {{formatDate(1.date; \"DD.MM.YYYY\")}}, total {{round(1.price * 1.2; 2)}}" }, "metadata": { "designer": { "x": 300, "y": 0 } } },
+    { "id": 3, "module": "builtin:BasicRouter", "version": 1, "mapper": null, "metadata": { "designer": { "x": 600, "y": 0 } }, "routes": [
+      { "flow": [ { "id": 4, "module": "gateway:WebhookRespond", "version": 1, "filter": { "name": "Kind A", "conditions": [[{ "a": "{{1.kind}}", "o": "text:equal", "b": "a" }]] }, "mapper": { "status": "200", "body": "{\"route\": \"a\", \"greeting\": \"{{2.greeting}}\", \"items\": {{length(1.tags)}}}", "headers": [{ "key": "Content-Type", "value": "application/json" }] }, "metadata": { "designer": { "x": 900, "y": -100 } } } ] },
+      { "flow": [ { "id": 5, "module": "gateway:WebhookRespond", "version": 1, "filter": { "name": "Big", "conditions": [[{ "a": "{{1.price}}", "o": "number:greater", "b": "100" }]] }, "mapper": { "status": "201", "body": "{\"route\": \"b\"}", "headers": [{ "key": "Content-Type", "value": "application/json" }] }, "metadata": { "designer": { "x": 900, "y": 100 } } } ] }
+    ] }
+  ],
+  "metadata": { "instant": true, "version": 1 }
+}

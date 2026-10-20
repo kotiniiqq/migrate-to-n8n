@@ -23,3 +23,24 @@ jobs:
       - run: npm run build
       - name: The package ships no n8n code
         run: "! npm pack --dry-run 2>&1 | grep -iE 'n8n-nodes|workflow-sdk|\.cache'"
+
+  e2e:
+    # Every fixture imported into a real n8n, and the runnable ones called through their webhooks.
+    runs-on: ubuntu-latest
+    services:
+      n8n:
+        image: n8nio/n8n:2.44.4
+        ports: ["5678:5678"]
+        env:
+          N8N_SECURE_COOKIE: "false"
+          N8N_DIAGNOSTICS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e
+        env:
+          N8N1_URL: skip

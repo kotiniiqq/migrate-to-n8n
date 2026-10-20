@@ -25,7 +25,7 @@ export async function uploadWorkflow(w: N8nWorkflow, cfg: UploadConfig, opts: { 
     throw new Error(`N8N_URL is not a web address: ${cfg.url}`);
   }
   const body = {
-    name: `${w.name} (migrated)`,
+    name: `${[...w.name].slice(0, 128 - ' (migrated)'.length).join('').trim()} (migrated)`,
     nodes: w.nodes.map((n) => Object.fromEntries(Object.entries(n).filter(([k]) => NODE_FIELDS.includes(k)))),
     connections: w.connections,
     settings: { executionOrder: 'v1' },
