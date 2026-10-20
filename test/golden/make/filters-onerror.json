@@ -243,6 +243,7 @@
         "status": "converted",
         "notes": [
           "A secret is sent in a header; consider moving it to an n8n \"Header Auth\" credential.",
+          "If the response is a JSON list, n8n turns it into one item per element (Make kept one bundle): add an Aggregate step after this one if later steps expect the whole list.",
           "Errors here are ignored: the item stops at this step (the error output is left unconnected), like Make \"Ignore\"."
         ]
       },

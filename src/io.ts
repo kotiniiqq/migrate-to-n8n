@@ -3,7 +3,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 
-import { InputError } from './types.ts';
+import { checkWorkflow } from './build/check.ts';
+import { InputError, type N8nWorkflow } from './types.ts';
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -26,4 +27,17 @@ export function readInput(args: { path?: string; json?: string }): string {
   if (!existsSync(file) || !statSync(file).isFile()) throw new InputError(`File not found: ${file}`);
   if (statSync(file).size > MAX_BYTES) throw new InputError(`The file is larger than 20 MB: ${file}`);
   return readFileSync(file, 'utf8');
+}
+
+/** An n8n workflow file (BOM allowed); anything else is a plain InputError, before anything is sent. */
+export function readWorkflow(args: { path?: string; json?: string }): N8nWorkflow {
+  let wf: unknown;
+  try {
+    wf = JSON.parse(readInput(args).replace(/^\uFEFF/, ''));
+  } catch (e) {
+    if (e instanceof InputError) throw e;
+    throw new InputError('This file is not an n8n workflow (it is not JSON).');
+  }
+  if (checkWorkflow(wf).some((i) => i.rule === 'shape')) throw new InputError('This file is not an n8n workflow: expected "nodes" and "connections" (a .n8n.json file written by convert).');
+  return wf as N8nWorkflow;
 }

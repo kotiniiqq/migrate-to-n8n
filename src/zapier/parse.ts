@@ -103,7 +103,10 @@ function graphOf(zap: Zap): SourceGraph {
   const steps: SourceStep[] = [];
   const edges: SourceEdge[] = [];
 
+  const seen = new Set<string>();
   const visit = (n: ZapNode, from?: { id: string; branch?: SourceEdge['branch'] }) => {
+    if (seen.has(String(n.id))) return; // a cycle in a broken export
+    seen.add(String(n.id));
     const step = toStep(n);
     steps.push(step);
     if (from) edges.push(from.branch ? { from: from.id, to: step.id, branch: from.branch } : { from: from.id, to: step.id });
@@ -113,6 +116,7 @@ function graphOf(zap: Zap): SourceGraph {
       children.forEach((path, index) => {
         const branch: NonNullable<SourceEdge['branch']> = { index };
         if (path.title) branch.label = path.title;
+        seen.add(String(path.id));
         const cond = criteria(path.params);
         if (cond) branch.condition = cond;
         for (const first of (byParent.get(String(path.id)) ?? []).sort(order)) visit(first, { id: step.id, branch: { ...branch } });
@@ -122,6 +126,13 @@ function graphOf(zap: Zap): SourceGraph {
     for (const c of children) visit(c, { id: step.id });
   };
   for (const root of (byParent.get('') ?? []).sort(order)) visit(root);
+  // Steps whose parent is missing (or that sit in a cycle) are kept, unconnected, so nothing disappears.
+  for (const n of [...zap.nodes].sort(order)) {
+    if (seen.has(String(n.id))) continue;
+    const before = steps.length;
+    visit(n);
+    for (const s of steps.slice(before, before + 1)) s.detached = true;
+  }
 
   const graph: SourceGraph = { source: 'zapier', name: zap.title?.trim() || `Zap ${zap.id ?? ''}`.trim(), steps, edges };
   if (zap.id !== undefined && zap.id !== null) graph.zapId = String(zap.id);

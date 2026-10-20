@@ -101,17 +101,22 @@ function readRows(key: string) {
       const groups = filter.map((g) => (Array.isArray(g) ? g : []).filter((c) => c?.a !== undefined).map((c) => ({
         left: /^[A-Z]{1,3}$/.test(str(c.a)) ? `{{__row.${str(c.a)}}}` : str(c.a), op: str(c.o), right: c.b === undefined ? undefined : str(c.b),
       }))).filter((g) => g.length);
-      const read = n8nNode('googleSheets', groups.length ? `${ctx.step.label} (read)` : ctx.step.label, {
+      const limit = str(p.limit).trim();
+      const read = n8nNode('googleSheets', `${ctx.step.label} (read)`, {
         resource: 'sheet', operation: 'read', documentId: documentId(p.spreadsheetId, ctx), sheetName: sheetName(p.sheetId, ctx), options: {},
       });
       const nodes = [read];
       if (groups.length) {
         const letters = [...new Set(groups.flat().map((c) => /^\{\{__row\.([A-Z]+)\}\}$/.exec(c.left)?.[1]).filter(Boolean))];
-        nodes.push(n8nNode('filter', ctx.step.label, conditionParameters(groups, MAKE_OPS, { ...ctx, expr: (v) => rowExpr(ctx.expr, v), js: (v) => rowJs(ctx.js, v) }, ctx.step.label)));
+        nodes.push(n8nNode('filter', `${ctx.step.label} (filter)`, conditionParameters(groups, MAKE_OPS, { ...ctx, expr: (v) => rowExpr(ctx.expr, v), js: (v) => rowJs(ctx.js, v) }, ctx.step.label)));
         if (letters.length) ctx.note(`Make filtered by column letter (${letters.join(', ')}); n8n rows are keyed by header: replace ['${letters[0]}'] in the Filter with the header name.`, true);
       }
       if (p.sortOrder === 'desc') ctx.note('Make returned the rows newest first; n8n reads top to bottom (add a Sort node if the order matters).', true);
-      if (p.limit) ctx.note(`Make returned at most ${str(p.limit)} rows; add a Limit node if that matters.`);
+      // Make returned at most `limit` rows (often 1, as a lookup); without it every match would flow on.
+      if (limit && limit !== '0') {
+        nodes.push(n8nNode('limit', ctx.step.label, { maxItems: /^\d+$/.test(limit) ? Number(limit) : ctx.expr(limit), keep: 'firstItems' }));
+      }
+      nodes[nodes.length - 1].wanted = ctx.step.label;
       return { nodes, status: 'converted', credential: SHEETS_CRED, ref: rowRef(ctx) };
     },
   });

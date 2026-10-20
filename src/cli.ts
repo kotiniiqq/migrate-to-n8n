@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 import { checkWorkflow } from './build/check.ts';
 import { convertMake, convertZapier, defaultOutputDir, writeResult } from './convert.ts';
-import { readInput, resolvePath } from './io.ts';
+import { readInput, readWorkflow, resolvePath } from './io.ts';
 import { allEntries } from './map/registry.ts';
 import { createServer } from './mcp/server.ts';
 import { uploadConfig, uploadWorkflow } from './n8n/upload.ts';
@@ -125,13 +125,7 @@ async function main(argv: string[]): Promise<number> {
       if (!args[0]) throw new InputError('Which file? migrate-to-n8n upload <workflow.json>');
       const cfg = uploadConfig();
       if (!cfg) throw new InputError('Set N8N_URL and N8N_API_KEY (n8n → Settings → n8n API) to upload.');
-      let wf;
-      try {
-        wf = JSON.parse(readInput({ path: args[0] }));
-      } catch (e) {
-        if (e instanceof InputError) throw e;
-        throw new InputError('The file is not an n8n workflow (not JSON).');
-      }
+      const wf = readWorkflow({ path: args[0] });
       try {
         const r = await uploadWorkflow(wf, cfg);
         console.log(`Created in n8n (inactive): ${r.url}`);

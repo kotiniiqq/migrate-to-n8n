@@ -56,6 +56,7 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   awsS3: { type: 'n8n-nodes-base.awsS3', typeVersion: 2 },
   formTrigger: { type: 'n8n-nodes-base.formTrigger', typeVersion: 2.3 },
   linear: { type: 'n8n-nodes-base.linear', typeVersion: 1.1 },
+  limit: { type: 'n8n-nodes-base.limit', typeVersion: 1 },
 };
 
 // ---------- the mapping table ----------

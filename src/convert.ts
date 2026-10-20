@@ -103,7 +103,7 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
   const credentials = new Map<string, { app: string; credentialType: string; nodes: string[] }>();
   const webhooks: ConversionReport['webhooks'] = [];
   const placeholders: ConversionReport['placeholders'] = [];
-  const vars = new Map<string, string>();
+  const vars = new Map<string, { name: string; stepId: string }>();
   const keys = new Set(g.steps.map((s) => s.key));
   const ancestors = ancestorsOf(g);
   const slug = slugify(g.name);
@@ -115,17 +115,25 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       if (!sink.notes.includes(text)) sink.notes.push(text);
       if (review) sink.status = worst(sink.status, 'review');
     };
+    /** Reading another step's output: it must run before this one (n8n's .item needs a path back) and be finished. */
+    const checkSource = (id: string) => {
+      const o = outs.get(id);
+      if (!o) return;
+      if (o.status === 'manual') note(`Uses data from "${o.step.label}", which must be finished by hand first.`, true);
+      if (!ancestors.get(step.id)?.has(id)) note(`Uses data from "${o.step.label}", which does not always run before this step.`, true);
+    };
     const refs: RefCtx = {
       refName(id) {
         const o = outs.get(id);
         if (!o) return undefined;
-        if (o.status === 'manual') note(`Uses data from "${o.step.label}", which must be finished by hand first.`, true);
-        if (!ancestors.get(step.id)?.has(id)) note(`Uses data from "${o.step.label}", which does not always run before this step.`, true);
+        checkSource(id);
         return o.name;
       },
       refBase(id, first) {
         const o = outs.get(id);
-        return o?.ref ? o.ref(o.name, first) : undefined;
+        if (!o?.ref) return undefined;
+        checkSource(id);
+        return o.ref(o.name, first);
       },
     };
     const tr = d.translate(refs);
@@ -134,6 +142,8 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
         const r = tr.expr(v);
         for (const n of r.notes) note(n, !r.ok);
         if (!r.ok && !r.notes.length) note(`Formula not translated: ${v}`, true);
+        // n8n reads any value that starts with "=" as an expression; keep plain text like "=SUM(A1)" as text.
+        if (r.value === v && v.startsWith('=')) return `=${v}`;
         return r.value;
       }
       if (Array.isArray(v)) return v.map(deep);
@@ -154,7 +164,11 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       },
       note,
       has: (k) => keys.has(k),
-      variable: (n) => vars.get(n),
+      variable: (n) => {
+        const v = vars.get(n);
+        if (v) checkSource(v.stepId);
+        return v?.name;
+      },
       slug,
       previous: (() => {
         const incoming = g.edges.filter((e) => e.to === step.id);
@@ -176,6 +190,7 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       res = d.manual(step, ctx);
     }
     if (!res.nodes.length) res = { ...res, nodes: [n8nNode('noOp', step.label, {})] };
+    if (step.detached) ctx.note('This step is not connected to the rest of the workflow in the export (its parent step is missing): connect it where it belongs.', true);
     for (const n of res.notes ?? []) ctx.note(n);
     let status = worst(sink.status, res.status);
 
@@ -227,7 +242,7 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     }
 
     const outName = names[names.length - 1];
-    for (const v of res.sets ?? []) vars.set(v, outName);
+    for (const v of res.sets ?? []) vars.set(v, { name: outName, stepId: step.id });
     if (res.credential) {
       const k = `${res.credential.app}|${res.credential.credentialType}`;
       const c = credentials.get(k) ?? { ...res.credential, nodes: [] };

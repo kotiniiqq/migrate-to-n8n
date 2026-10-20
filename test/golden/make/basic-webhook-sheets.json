@@ -72,7 +72,7 @@
               "A": "={{ $('Set variable').item.json.fullName }}",
               "B": "={{ $('Form submitted').item.json.body.email }}",
               "C": "={{ $now.toFormat('yyyy-LL-dd HH:mm') }}",
-              "D": "={{ ($('Form submitted').item.json.body.company || \"—\") }}"
+              "D": "={{ ((v) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) ? \"—\" : v)($('Form submitted').item.json.body.company) }}"
             },
             "matchingColumns": [],
             "schema": []

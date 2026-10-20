@@ -25,7 +25,7 @@
       },
       {
         "id": "id-2",
-        "name": "Google Sheets: Filter Rows",
+        "name": "Google Sheets: Filter Rows (read)",
         "type": "n8n-nodes-base.googleSheets",
         "typeVersion": 4.7,
         "position": [
@@ -50,11 +50,25 @@
       },
       {
         "id": "id-3",
+        "name": "Google Sheets: Filter Rows",
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "maxItems": 100,
+          "keep": "firstItems"
+        }
+      },
+      {
+        "id": "id-4",
         "name": "HTTP request",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.3,
         "position": [
-          780,
+          1040,
           0
         ],
         "parameters": {
@@ -79,12 +93,12 @@
         }
       },
       {
-        "id": "id-4",
+        "id": "id-5",
         "name": "Overdue",
         "type": "n8n-nodes-base.filter",
         "typeVersion": 2.3,
         "position": [
-          520,
+          780,
           0
         ],
         "parameters": {
@@ -97,7 +111,7 @@
             },
             "conditions": [
               {
-                "id": "id-5",
+                "id": "id-6",
                 "leftValue": "={{ DateTime.fromFormat(String($('Google Sheets: Filter Rows').item.json['D']), 'dd.LL.yyyy') }}",
                 "rightValue": "={{ $now }}",
                 "operator": {
@@ -113,12 +127,12 @@
         }
       },
       {
-        "id": "id-6",
+        "id": "id-7",
         "name": "Sleep",
         "type": "n8n-nodes-base.wait",
         "typeVersion": 1.1,
         "position": [
-          1040,
+          1300,
           0
         ],
         "parameters": {
@@ -127,12 +141,12 @@
         }
       },
       {
-        "id": "id-7",
+        "id": "id-8",
         "name": "Email: Send Email",
         "type": "n8n-nodes-base.emailSend",
         "typeVersion": 2.1,
         "position": [
-          1300,
+          1560,
           0
         ],
         "parameters": {
@@ -149,6 +163,17 @@
     ],
     "connections": {
       "Schedule": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets: Filter Rows (read)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets: Filter Rows (read)": {
         "main": [
           [
             {
@@ -223,12 +248,11 @@
         "sourceLabel": "Google Sheets: Filter Rows",
         "sourceKey": "google-sheets:filterRows",
         "n8nNodes": [
+          "Google Sheets: Filter Rows (read)",
           "Google Sheets: Filter Rows"
         ],
         "status": "converted",
-        "notes": [
-          "Make returned at most 100 rows; add a Limit node if that matters."
-        ]
+        "notes": []
       },
       {
         "sourceId": "2",
@@ -242,6 +266,7 @@
         "notes": [
           "Make read column A of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['A'] with the header. Original: {{1.`0`}}",
           "Make read column D of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['D'] with the header. Original: {{formatDate(parseDate(1.`3`; \"DD.MM.YYYY\"); \"YYYY-MM-DD\")}}",
+          "If the response is a JSON list, n8n turns it into one item per element (Make kept one bundle): add an Aggregate step after this one if later steps expect the whole list.",
           "Make read column D of \"Google Sheets: Filter Rows\" by position; n8n names columns by their header: replace ['D'] with the header. Original: {{parseDate(1.`3`; \"DD.MM.YYYY\")}}"
         ]
       },

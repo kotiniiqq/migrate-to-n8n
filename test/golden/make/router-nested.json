@@ -359,7 +359,9 @@
           "HTTP request"
         ],
         "status": "converted",
-        "notes": []
+        "notes": [
+          "If the response is a JSON list, n8n turns it into one item per element (Make kept one bundle): add an Aggregate step after this one if later steps expect the whole list."
+        ]
       },
       {
         "sourceId": "4",

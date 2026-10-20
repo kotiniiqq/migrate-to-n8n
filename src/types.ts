@@ -31,6 +31,8 @@ export interface SourceStep {
   connectionRef?: string;
   /** Output fields as the source labels them (Make module metadata), e.g. `0` → "Name (A)". */
   outputFields?: Array<{ name: string; label: string }>;
+  /** Not connected to the rest of the workflow in the export (its parent step is missing). */
+  detached?: boolean;
   /** Labels of the sub-fields of an input, e.g. the columns behind `values`. */
   inputFields?: Record<string, Array<{ name: string; label: string }>>;
 }

@@ -79,3 +79,15 @@ test('upload without settings explains what to set (exit 1); a failed upload exi
   assert.equal(down.code, 2);
   assert.match(down.err, /Could not reach/);
 });
+
+test('upload: a workflow saved with a BOM is read; JSON that is not a workflow is refused before sending', () => {
+  const env = { N8N_URL: 'http://127.0.0.1:9', N8N_API_KEY: 'x' };
+  const notWf = join(dir, 'not-wf.json');
+  writeFileSync(notWf, '{"hello": 1}');
+  const r = run(['upload', notWf], env);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /not an n8n workflow/);
+  const bom = join(dir, 'bom.json');
+  writeFileSync(bom, '\uFEFF' + JSON.stringify({ name: 'x', nodes: [], connections: {} }));
+  assert.match(run(['upload', bom], env).err, /Could not reach/); // read fine, then the (absent) server
+});

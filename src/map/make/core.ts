@@ -13,6 +13,16 @@ const pairs = (v: unknown, ctx: MapCtx) =>
 const str = (v: unknown) => (v === undefined || v === null ? '' : String(v));
 const numberOr = (v: unknown, ctx: MapCtx): unknown => (/^\s*-?\d+(\.\d+)?\s*$/.test(str(v)) ? Number(v) : ctx.expr(str(v)));
 
+/** Make runs the steps after the trigger once per bundle; n8n runs them once for all items of the run. */
+function perBundleNote(ctx: MapCtx): void {
+  const first = ctx.graph.steps[0]?.key ?? '';
+  if (!first.startsWith('gateway:')) {
+    ctx.note('Make aggregated per bundle of the trigger (e.g. one email per new row); n8n collects every item of the run into one. If the trigger can return several items, loop over them (Loop Over Items) or aggregate per group.', true);
+  }
+}
+
+const HTTP_LIST_NOTE = 'If the response is a JSON list, n8n turns it into one item per element (Make kept one bundle): add an Aggregate step after this one if later steps expect the whole list.';
+
 const assignment = (name: string, value: unknown, type = 'string') => ({ id: randomUUID(), name, value, type });
 const setFields = (fields: Array<{ name: string; value: unknown; type?: string }>) => ({
   mode: 'manual',
@@ -102,6 +112,7 @@ function httpEntry(key: string, label: string, auth?: 'basic' | 'apiKey') {
       params.options = options;
       return {
         nodes: [n8nNode('httpRequest', ctx.step.label, params)],
+        notes: key === 'http:ActionGetFile' ? [] : [HTTP_LIST_NOTE],
         status: 'converted',
         credential,
         ref: (_out, first) => {
@@ -157,7 +168,7 @@ register({
     }
     params.options = p.stopOnHttpError === false ? { response: { response: { neverError: true } } } : {};
     return {
-      nodes: [n8nNode('httpRequest', ctx.step.label, params)], status: 'converted', credential,
+      nodes: [n8nNode('httpRequest', ctx.step.label, params)], status: 'converted', credential, notes: [HTTP_LIST_NOTE],
       ref: (out, first) => {
         if (first === 'data') return { base: `${nodeRef(out)}.item.json`, drop: 1 };
         if (first === 'statusCode' || first === 'headers') throw new Error(`the HTTP ${first} is not in the n8n output by default (HTTP Request → Options → Response → Include Response Headers and Status)`);
@@ -305,6 +316,7 @@ register({
     nodes.push(n8nNode('aggregate', ctx.step.label, { aggregate: 'aggregateAllItemData', destinationFieldName: 'array', options: {} }));
     if (ctx.step.params.groupBy) ctx.note('Make grouped the items ("Group by"); n8n aggregates all of them: split by group with a Code node or Summarize.', true);
     ctx.note('Collects every item that reaches it into "array", like Make closing the iterator.');
+    perBundleNote(ctx);
     return { nodes, status: ctx.step.params.groupBy ? 'review' : 'converted' };
   },
 });
@@ -314,7 +326,9 @@ register({
   build(ctx) {
     const p = ctx.step.params;
     const sepRaw = str(p.rowSeparator);
-    const sep = sepRaw === '' || sepRaw === '\n' || sepRaw === 'newline' ? '\n' : sepRaw === 'tab' || sepRaw === '\t' ? '\t' : sepRaw === 'other' ? str(p.otherSeparator) : sepRaw;
+    const sep = sepRaw === '\n' || sepRaw === 'newline' ? '\n' : sepRaw === 'tab' || sepRaw === '\t' ? '\t' : sepRaw === 'other' ? str(p.otherSeparator) : sepRaw;
+    if (sepRaw === '') ctx.note('Make had no row separator set: the rows are joined without one. Check that this is what you want.', true);
+    perBundleNote(ctx);
     return {
       nodes: [
         n8nNode('set', `${ctx.step.label} (rows)`, { mode: 'manual', assignments: { assignments: [assignment('value', ctx.expr(str(p.value)))] }, options: {} }),

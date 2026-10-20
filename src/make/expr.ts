@@ -336,8 +336,11 @@ class Printer {
         return dt(`DateTime.fromFormat(String(${js(a[0])}), ${jsSingle(f.fmt)}${zone})`);
       }
       case 'if': need(3); return any(`(${js(a[0])} ? ${js(a[1])} : ${js(a[2])})`);
-      case 'ifempty': need(2); return any(`(${js(a[0])} || ${js(a[1])})`);
-      case 'coalesce': if (!a.length) need(1); return any(`(${a.map(js).join(' ?? ')})`);
+      // Make counts only null, "" and an empty list as empty (0 and false are values).
+      case 'ifempty': need(2); return any(`((v) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) ? ${js(a[1])} : v)(${js(a[0])})`);
+      case 'coalesce':
+        if (!a.length) need(1);
+        return any(`[${a.map(js).join(', ')}].find((v) => v !== undefined && v !== null && v !== '')`);
       case 'switch': {
         if (a.length < 3) need(3);
         const subject = js(a[0]);

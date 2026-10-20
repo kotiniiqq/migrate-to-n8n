@@ -172,11 +172,16 @@ const TRANSFORMS: Record<string, Transform> = {
   'string.extract_url': (x) => `(String(${x}).match(/https?:\\/\\/[^\\s"'<>]+/)?.[0] ?? '')`,
   'string.extract_number': (x) => `(String(${x}).match(/-?\\d+(?:[.,]\\d+)?/)?.[0] ?? '')`,
   'string.extract_phone': (x) => `(String(${x}).match(/\\+?[\\d\\s().-]{7,}\\d/)?.[0] ?? '')`,
-  'date.formatting': (x, p) => {
-    const f = convertDateFormat(str(p.to_format) || 'YYYY-MM-DDTHH:mm:ssZ');
-    const zone = p.to_timezone ? `.setZone('${str(p.to_timezone).replace(/'/g, "\\'")}')` : '';
-    const from = p.from_format ? `DateTime.fromFormat(String(${x}), '${convertDateFormat(str(p.from_format)).fmt}')` : `DateTime.fromISO(String(${x}))`;
-    return `${from}${zone}.toFormat('${f.fmt.replace(/'/g, "\\'")}')`;
+  'date.formatting': (x, p, ctx) => {
+    const q = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+    const to = convertDateFormat(str(p.to_format) || 'YYYY-MM-DDTHH:mm:ssZ');
+    const fromF = p.from_format ? convertDateFormat(str(p.from_format)) : undefined;
+    for (const f of [to, fromF]) {
+      if (f && !f.exact) ctx.note(`Date format token ${f.unsupported.join(', ')} has no exact Luxon equivalent; check the output.`, true);
+    }
+    const zone = p.to_timezone ? `.setZone(${q(str(p.to_timezone))})` : '';
+    const from = fromF ? `DateTime.fromFormat(String(${x}), ${q(fromF.fmt)})` : `DateTime.fromISO(String(${x}))`;
+    return `${from}${zone}.toFormat(${q(to.fmt)})`;
   },
   'date.manipulate': (x, p) => {
     const m = /^\s*([+-])\s*(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*$/i.exec(str(p.expression));

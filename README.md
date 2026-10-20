@@ -39,7 +39,7 @@ Measured on 2026-10-20 on the public Make blueprints and Zapier exports found on
 
 | Source | Workflows | Steps | ✅ Converted | ⚠️ To review | 🛠 Manual | Broken outputs | Time (median) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Make | 1,432 | 10,063 | 42.1% | 38% | 19.9% | 0 | 0.7 ms |
+| Make | 1,432 | 10,064 | 41% | 39.1% | 19.9% | 0 | 0.8 ms |
 | Zapier | 148 | 910 | 12.6% | 58.2% | 29.1% | 0 | 0.2 ms |
 <!-- corpus:end -->
 

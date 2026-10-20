@@ -38,10 +38,15 @@ export async function uploadWorkflow(w: N8nWorkflow, cfg: UploadConfig, opts: { 
       headers: { 'content-type': 'application/json', accept: 'application/json', 'X-N8N-API-KEY': cfg.apiKey },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
+      // Never follow a redirect: the API key must only go to the address the user configured.
+      redirect: 'manual',
     });
   } catch (e) {
     if ((e as Error).name === 'TimeoutError') throw new Error(`n8n at ${host} did not answer within ${Math.round(timeoutMs / 1000)} s.`);
     throw new Error(`Could not reach ${host}: ${(e as { cause?: { code?: string } }).cause?.code ?? (e as Error).message}.`);
+  }
+  if (res.status >= 300 && res.status < 400) {
+    throw new Error(`N8N_URL redirects to ${res.headers.get('location') ?? 'another address'}: set N8N_URL to that address (nothing was sent there).`);
   }
   const text = await res.text();
   let json: { id?: string; message?: string } = {};

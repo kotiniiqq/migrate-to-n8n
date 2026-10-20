@@ -213,8 +213,8 @@
     "source": "make",
     "workflowName": "Price list digest",
     "totals": {
-      "converted": 5,
-      "review": 0,
+      "converted": 4,
+      "review": 1,
       "manual": 0
     },
     "steps": [
@@ -226,7 +226,9 @@
           "HTTP request"
         ],
         "status": "converted",
-        "notes": []
+        "notes": [
+          "If the response is a JSON list, n8n turns it into one item per element (Make kept one bundle): add an Aggregate step after this one if later steps expect the whole list."
+        ]
       },
       {
         "sourceId": "2",
@@ -258,9 +260,10 @@
           "Array aggregator (fields)",
           "Array aggregator"
         ],
-        "status": "converted",
+        "status": "review",
         "notes": [
-          "Collects every item that reaches it into \"array\", like Make closing the iterator."
+          "Collects every item that reaches it into \"array\", like Make closing the iterator.",
+          "Make aggregated per bundle of the trigger (e.g. one email per new row); n8n collects every item of the run into one. If the trigger can return several items, loop over them (Loop Over Items) or aggregate per group."
         ]
       },
       {
@@ -271,13 +274,16 @@
           "HTTP request 2"
         ],
         "status": "converted",
-        "notes": []
+        "notes": [
+          "If the response is a JSON list, n8n turns it into one item per element (Make kept one bundle): add an Aggregate step after this one if later steps expect the whole list."
+        ]
       }
     ],
     "credentials": [],
     "webhooks": [],
     "placeholders": [],
     "nextSteps": [
+      "Check 1 step marked \"review\".",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

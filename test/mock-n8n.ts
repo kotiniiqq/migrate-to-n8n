@@ -17,6 +17,8 @@ export interface MockN8n {
   failNext(status: number): void;
   /** Delay every answer (for timeouts). */
   delay(ms: number): void;
+  /** Answer the next request with a 307 redirect to this address. */
+  redirectNext(location: string): void;
   close(): Promise<void>;
 }
 
@@ -24,6 +26,7 @@ export async function startMockN8n(): Promise<MockN8n> {
   const store = new Map<string, any>();
   const requests: string[] = [];
   let fail: number | null = null;
+  let redirect: string | null = null;
   let wait = 0;
   let seq = 0;
   const apiKey = 'test-key';
@@ -55,6 +58,11 @@ export async function startMockN8n(): Promise<MockN8n> {
     req.on('data', (c) => (raw += c));
     req.on('end', () => {
       requests.push(`${req.method} ${req.url}`);
+      if (redirect) {
+        res.writeHead(307, { location: redirect });
+        redirect = null;
+        return res.end();
+      }
       if (fail !== null) {
         const status = fail;
         fail = null;
@@ -84,6 +92,7 @@ export async function startMockN8n(): Promise<MockN8n> {
     requests,
     failNext: (status) => { fail = status; },
     delay: (ms) => { wait = ms; },
+    redirectNext: (location) => { redirect = location; },
     close: () => new Promise((r) => { server.closeAllConnections(); server.close(() => r()); }),
   };
 }

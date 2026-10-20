@@ -1,12 +1,10 @@
 /** The MCP server: the converter as tools for Claude, Cursor, VS Code and other MCP clients. */
-import { readFileSync } from 'node:fs';
-
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { checkWorkflow } from '../build/check.ts';
 import { convertMake, convertZapier, defaultOutputDir, writeResult } from '../convert.ts';
-import { readInput, resolvePath } from '../io.ts';
+import { readInput, readWorkflow, resolvePath } from '../io.ts';
 import { N8N_APPS } from '../map/n8n-apps.ts';
 import { allEntries } from '../map/registry.ts';
 import { describeModule } from '../map/suggest.ts';
@@ -132,12 +130,7 @@ export function createServer(opts: { env?: Record<string, string | undefined> } 
       inputSchema: { path: z.string().describe('Path of the .n8n.json file written by convert_make or convert_zapier') },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     }, async (args) => guard(async () => {
-      let wf;
-      try {
-        wf = JSON.parse(readFileSync(resolvePath(args.path), 'utf8'));
-      } catch {
-        throw new InputError(`Could not read an n8n workflow from ${resolvePath(args.path)}.`);
-      }
+      const wf = readWorkflow({ path: args.path });
       try {
         const r = await uploadWorkflow(wf, upload);
         return ok(`Created in n8n (inactive): ${r.url}\nOpen it, connect the credentials, finish the steps marked ⚠, test it, then activate it.`);

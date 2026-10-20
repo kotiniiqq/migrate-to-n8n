@@ -33,6 +33,9 @@ function unwrap(input: unknown): Record<string, unknown> {
     }
   }
   if (Array.isArray(v) && v.length === 1) v = v[0];
+  // Make's API answers {response: {blueprint}}; some tools save {blueprint}.
+  const resp = (v as { response?: unknown })?.response;
+  if (resp && typeof resp === 'object' && 'blueprint' in resp && !(v as { flow?: unknown }).flow) v = resp;
   if (v && typeof v === 'object' && !Array.isArray(v) && 'blueprint' in v && !('flow' in v)) v = (v as { blueprint: unknown }).blueprint;
   if (looksLikeZapier(v)) throw new InputError('This looks like a Zapier export, not a Make blueprint: convert it as Zapier (convert_zapier).');
   if (!v || typeof v !== 'object' || Array.isArray(v) || !Array.isArray((v as { flow?: unknown }).flow)) throw new InputError(NOT_A_BLUEPRINT);
@@ -148,6 +151,7 @@ export function parseMake(input: unknown): SourceGraph {
     }
   };
   walk(bp.flow as MakeModule[]);
+  if (!steps.length) throw new InputError('The blueprint has no modules: export the scenario again from Make (Export Blueprint).');
 
   const graph: SourceGraph = { source: 'make', name: String(bp.name ?? '').trim() || 'Make scenario', steps, edges };
   const meta = bp.metadata as { instant?: boolean } | undefined;
