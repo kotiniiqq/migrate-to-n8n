@@ -46,6 +46,11 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   whatsApp: { type: 'n8n-nodes-base.whatsApp', typeVersion: 1.1 },
   rssFeedReadTrigger: { type: 'n8n-nodes-base.rssFeedReadTrigger', typeVersion: 1 },
   dropbox: { type: 'n8n-nodes-base.dropbox', typeVersion: 1 },
+  gmailTrigger: { type: 'n8n-nodes-base.gmailTrigger', typeVersion: 1.3 },
+  googleDriveTrigger: { type: 'n8n-nodes-base.googleDriveTrigger', typeVersion: 1 },
+  airtableTrigger: { type: 'n8n-nodes-base.airtableTrigger', typeVersion: 1 },
+  typeformTrigger: { type: 'n8n-nodes-base.typeformTrigger', typeVersion: 1.1 },
+  linkedIn: { type: 'n8n-nodes-base.linkedIn', typeVersion: 1 },
 };
 
 // ---------- the mapping table ----------
