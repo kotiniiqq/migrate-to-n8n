@@ -1,8 +1,8 @@
 /** The way forward for a step nothing in the mapping table covers: the closest n8n node, placed disabled
  *  with the fields to map, or an HTTP Request / Code draft. The workflow stays connected and valid. */
-import type { SourceStep } from '../types.ts';
+import type { Source, SourceStep } from '../types.ts';
 import { findApp } from './apps.ts';
-import { n8nNode, type MapCtx, type MapOutput } from './registry.ts';
+import { findEntry, n8nNode, type MapCtx, type MapOutput } from './registry.ts';
 
 /** `createCardFromTemplate` → "Create card from template". */
 const humanAction = (action: string) => {
@@ -86,4 +86,19 @@ export function suggestFor(step: SourceStep, ctx: MapCtx): MapOutput {
     status: 'manual',
     suggestion,
   };
+}
+
+/** What happens to one source module, in a sentence or two (for the suggest_replacement tool). */
+export function describeModule(source: Source, key: string): string {
+  const entry = findEntry(source, key);
+  if (entry) return `"${key}" is converted automatically: it becomes ${entry.label} in n8n.`;
+  const [app, ...rest] = key.split(':');
+  const action = rest.join(':');
+  const match = findApp(source, app, false);
+  if (match?.type) {
+    const trig = match.triggerName ? ` To start a workflow from it, use the ${match.triggerName} node.` : '';
+    return `"${key}" is not converted automatically yet. Use the ${match.displayName} node (${match.type}) with the operation closest to "${humanAction(action)}".${trig}`;
+  }
+  if (match?.apiBase) return `"${key}" has no n8n node: call the ${match.displayName} API (${match.apiBase}) with an HTTP Request node.`;
+  return `"${key}" has no n8n node and no known API: use an HTTP Request node with the service's API, or a Code node.`;
 }

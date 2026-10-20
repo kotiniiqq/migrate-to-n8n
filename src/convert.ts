@@ -316,8 +316,8 @@ export function setting(value: string | undefined): string | undefined {
   return v && !/^\$\{[^}]*\}$/.test(v) ? v : undefined;
 }
 
-export function defaultOutputDir(): string {
-  return setting(process.env.MIGRATE_OUTPUT_DIR) ?? join(homedir(), 'Documents', 'migrate-to-n8n');
+export function defaultOutputDir(env: Record<string, string | undefined> = process.env): string {
+  return setting(env.MIGRATE_OUTPUT_DIR) ?? join(homedir(), 'Documents', 'migrate-to-n8n');
 }
 
 /** Write `<name>.n8n.json`, `<name>.report.md` and `<name>.report.json` into `dir`, never overwriting files. */
