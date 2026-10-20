@@ -135,7 +135,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node.",
+          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -151,7 +151,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Google Sheets: Update Row\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Update row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1ZyXwVuTsRqPoNmLkJiHgFeDcBa; sheetId ← Orders; rowNumber ← {{ $('Webhook').item.json.body.row }}; values ← {\"0\":\"={{ $('HTTP request').item.json.status }}\"}. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node.",
+          "content": "### ⚠ Google Sheets: Update Row\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Update row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1ZyXwVuTsRqPoNmLkJiHgFeDcBa; sheetId ← Orders; rowNumber ← {{ $('Webhook').item.json.body.row }}; values ← {\"0\":\"={{ $('HTTP request').item.json.status }}\"}.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -255,7 +255,7 @@
         "notes": [
           "Make stored the failed run and retried it later; n8n retries this step 4 times, 5 s apart. For longer gaps use an error workflow."
         ],
-        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node."
+        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0456EFGH; text ← Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}; channelType ← public; channelWType ← list."
       },
       {
         "sourceId": "4",
@@ -269,7 +269,7 @@
           "Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.",
           "On an error Make ran: \"Email: Send Email\". In n8n set this node's \"On Error\" to \"Continue (using error output)\" and connect the same steps to the error output."
         ],
-        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Update row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1ZyXwVuTsRqPoNmLkJiHgFeDcBa; sheetId ← Orders; rowNumber ← {{ $('Webhook').item.json.body.row }}; values ← {\"0\":\"={{ $('HTTP request').item.json.status }}\"}. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node."
+        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Update row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1ZyXwVuTsRqPoNmLkJiHgFeDcBa; sheetId ← Orders; rowNumber ← {{ $('Webhook').item.json.body.row }}; values ← {\"0\":\"={{ $('HTTP request').item.json.status }}\"}."
       }
     ],
     "credentials": [],

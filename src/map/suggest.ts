@@ -26,7 +26,7 @@ function fields(step: SourceStep, ctx: MapCtx): Array<{ name: string; value: unk
   return Object.entries(step.params)
     .filter(([, v]) => v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && !v.length))
     .slice(0, MAX_FIELDS)
-    .map(([name, v]) => ({ name, value: ctx.expr(v), js: ctx.js(typeof v === 'string' ? v : JSON.stringify(v)) }));
+    .map(([name, v]) => ({ name, value: ctx.expr(v), js: ctx.js(v) }));
 }
 
 const shown = (v: unknown) => {
@@ -44,7 +44,7 @@ export function suggestFor(step: SourceStep, ctx: MapCtx): MapOutput {
 
   // A trigger node has no input, so it can only stand where the flow starts.
   if (app?.type && !(app.trigger && !isFirst)) {
-    const trig = app.triggerName ? ` To start the workflow from ${app.displayName.replace(/ Trigger$/, '')} instead, replace the trigger with the ${app.triggerName} node.` : '';
+    const trig = app.triggerName && isFirst ? ` To start the workflow from ${app.displayName.replace(/ Trigger$/, '')} instead, replace the trigger with the ${app.triggerName} node.` : '';
     const suggestion = `Use the ${app.displayName} node (placed here, disabled): choose the operation closest to "${action}", connect the credential, map the fields, then enable it.${mapping}${trig}`;
     return {
       nodes: [{ wanted: step.label, type: app.type, typeVersion: app.typeVersion!, parameters: {}, disabled: true, note: suggestion }],

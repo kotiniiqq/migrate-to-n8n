@@ -1,5 +1,9 @@
 /** Source graph → n8n workflow + report. Shared by Make and Zapier; each source brings its parser,
  *  formula translator and condition operators. */
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 import { buildWorkflow, type PlannedEdge, type PlannedNode } from './build/workflow.ts';
 import { translateMakeExpr, translateMakeJs, type MakeExprCtx } from './make/expr.ts';
 import { makeLabel, parseMake } from './make/parse.ts';
@@ -8,7 +12,8 @@ import './map/make/index.ts';
 import { findEntry, n8nNode, worst, type MapCtx, type MapOutput } from './map/registry.ts';
 import { suggestFor } from './map/suggest.ts';
 import type { ConversionReport, ConversionResult, Source, SourceGraph, SourceStep, Status, StepReport } from './types.ts';
-import { uniqueName } from './util/names.ts';
+import { renderMarkdown } from './report/render.ts';
+import { safeFileName, uniqueName } from './util/names.ts';
 
 export interface RefCtx {
   refName(id: string): string | undefined;
@@ -134,8 +139,11 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       step,
       graph: g,
       expr: deep,
-      js(v) {
-        const r = tr.js(typeof v === 'string' ? v : JSON.stringify(v ?? ''));
+      js: function js(v: unknown): string {
+        if (Array.isArray(v)) return `[${v.map(js).join(', ')}]`;
+        if (v && typeof v === 'object') return `{ ${Object.entries(v).map(([k, x]) => `${JSON.stringify(k)}: ${js(x)}`).join(', ')} }`;
+        if (typeof v !== 'string') return JSON.stringify(v ?? null);
+        const r = tr.js(v);
         for (const n of r.notes) note(n, !r.ok);
         return r.js;
       },
@@ -292,4 +300,31 @@ const MAKE: Dialect = {
 
 export function convertMake(input: unknown): ConversionResult {
   return convertGraph(parseMake(input), MAKE);
+}
+
+/** A setting that Claude Desktop passes through unfilled arrives empty or as the literal `${user_config.x}`. */
+export function setting(value: string | undefined): string | undefined {
+  const v = value?.trim();
+  return v && !/^\$\{[^}]*\}$/.test(v) ? v : undefined;
+}
+
+export function defaultOutputDir(): string {
+  return setting(process.env.MIGRATE_OUTPUT_DIR) ?? join(homedir(), 'Documents', 'migrate-to-n8n');
+}
+
+/** Write `<name>.n8n.json`, `<name>.report.md` and `<name>.report.json` into `dir`, never overwriting files. */
+export function writeResult(res: ConversionResult, dir: string): { workflowPath: string; reportPath: string; reportJsonPath: string } {
+  mkdirSync(dir, { recursive: true });
+  const base = safeFileName(res.workflow.name);
+  const paths = (n: number) => {
+    const stem = join(dir, n === 1 ? base : `${base} (${n})`);
+    return { workflowPath: `${stem}.n8n.json`, reportPath: `${stem}.report.md`, reportJsonPath: `${stem}.report.json` };
+  };
+  let n = 1;
+  while (Object.values(paths(n)).some((p) => existsSync(p))) n++;
+  const p = paths(n);
+  writeFileSync(p.workflowPath, JSON.stringify(res.workflow, null, 2) + '\n', { flag: 'wx' });
+  writeFileSync(p.reportPath, renderMarkdown(res.report), { flag: 'wx' });
+  writeFileSync(p.reportJsonPath, JSON.stringify(res.report, null, 2) + '\n', { flag: 'wx' });
+  return p;
 }

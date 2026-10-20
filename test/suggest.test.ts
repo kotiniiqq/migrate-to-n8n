@@ -92,3 +92,17 @@ test('suggestions translate list values too and name the action in plain words',
   assert.match(s, /"Create card from template"/);
   assert.match(s, /labels ← \["=\{\{ \$\('Webhook'\)\.item\.json\.body\.tag \}\}","fixed"\]/);
 });
+
+test('nested source values become JavaScript objects, with their formulas translated', () => {
+  const r = convertMake(blueprint([hook, { module: 'app#custom-app-x:doIt', mapper: { values: { 0: '{{1.a}}', 1: 'fixed' }, list: ['{{1.b}}'] } }]));
+  const s = r.report.steps[1];
+  const node = r.workflow.nodes.find((n) => n.name === s.n8nNodes.at(-1))!;
+  assert.match(String(node.parameters.jsCode), /values: \{ "0": \$\('Webhook'\)\.item\.json\.body\.a, "1": "fixed" \}/);
+  assert.match(String(node.parameters.jsCode), /list: \[\$\('Webhook'\)\.item\.json\.body\.b\]/);
+  assert.doesNotMatch(s.notes.join(' '), /not translated/);
+});
+
+test('only a first step is told about the app trigger', () => {
+  const r = convertMake(blueprint([hook, { module: 'airtable:createRecord', mapper: {} }]));
+  assert.doesNotMatch(r.report.steps[1].suggestion!, /Trigger/);
+});

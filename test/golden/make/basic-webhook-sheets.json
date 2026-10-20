@@ -91,7 +91,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Google Sheets: Add Row\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Add row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1AbCdEfGhIjKlMnOpQrStUvWxYz; sheetId ← Leads; includesHeaders ← true; insertDataOption ← INSERT_ROWS; valueInputOption ← USER_ENTERED; values ← {\"0\":\"={{ $('Set variable').item.json.fullName }}\",\"1\":\"={{ $('Form submitted').item.json.body.email }}\",\"2\":\"={{ $no…. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node.",
+          "content": "### ⚠ Google Sheets: Add Row\nUse the Google Sheets node (placed here, disabled): choose the operation closest to \"Add row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1AbCdEfGhIjKlMnOpQrStUvWxYz; sheetId ← Leads; includesHeaders ← true; insertDataOption ← INSERT_ROWS; valueInputOption ← USER_ENTERED; values ← {\"0\":\"={{ $('Set variable').item.json.fullName }}\",\"1\":\"={{ $('Form submitted').item.json.body.email }}\",\"2\":\"={{ $no….",
           "height": 200,
           "width": 320,
           "color": 3
@@ -177,10 +177,8 @@
           "Google Sheets: Add Row"
         ],
         "status": "manual",
-        "notes": [
-          "Formula not translated (unexpected character \"\\\"): {\"0\":\"{{2.fullName}}\",\"1\":\"{{1.email}}\",\"2\":\"{{formatDate(now; \\\"YYYY-MM-DD HH:mm\\\")}}\",\"3\":\"{{ifempty(1.company; \\\"—\\\")}}\"}"
-        ],
-        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Add row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1AbCdEfGhIjKlMnOpQrStUvWxYz; sheetId ← Leads; includesHeaders ← true; insertDataOption ← INSERT_ROWS; valueInputOption ← USER_ENTERED; values ← {\"0\":\"={{ $('Set variable').item.json.fullName }}\",\"1\":\"={{ $('Form submitted').item.json.body.email }}\",\"2\":\"={{ $no…. To start the workflow from Google Sheets instead, replace the trigger with the Google Sheets Trigger node."
+        "notes": [],
+        "suggestion": "Use the Google Sheets node (placed here, disabled): choose the operation closest to \"Add row\", connect the credential, map the fields, then enable it. Fields from Make: mode ← select; spreadsheetId ← /1AbCdEfGhIjKlMnOpQrStUvWxYz; sheetId ← Leads; includesHeaders ← true; insertDataOption ← INSERT_ROWS; valueInputOption ← USER_ENTERED; values ← {\"0\":\"={{ $('Set variable').item.json.fullName }}\",\"1\":\"={{ $('Form submitted').item.json.body.email }}\",\"2\":\"={{ $no…."
       },
       {
         "sourceId": "4",

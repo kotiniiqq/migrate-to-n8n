@@ -221,7 +221,7 @@
           -220
         ],
         "parameters": {
-          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node.",
+          "content": "### ⚠ Slack: Create Message\nUse the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list.",
           "height": 200,
           "width": 320,
           "color": 3
@@ -395,7 +395,7 @@
         ],
         "status": "manual",
         "notes": [],
-        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list. To start the workflow from Slack instead, replace the trigger with the Slack Trigger node."
+        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Create message\", connect the credential, map the fields, then enable it. Fields from Make: channel ← C0123ABCD; text ← Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}; channelType ← public; channelWType ← list."
       },
       {
         "sourceId": "6",
