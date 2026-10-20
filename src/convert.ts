@@ -7,13 +7,17 @@ import { join } from 'node:path';
 import { buildWorkflow, type PlannedEdge, type PlannedNode } from './build/workflow.ts';
 import { translateMakeExpr, translateMakeJs, type MakeExprCtx } from './make/expr.ts';
 import { makeLabel, parseMake } from './make/parse.ts';
-import { conditionParameters, MAKE_OPS, type OpSpec } from './map/conditions.ts';
+import { conditionParameters, MAKE_OPS, ZAPIER_OPS, type OpSpec } from './map/conditions.ts';
 import './map/make/index.ts';
+import './map/zapier/index.ts';
 import { findEntry, n8nNode, worst, type MapCtx, type MapOutput } from './map/registry.ts';
 import { suggestFor } from './map/suggest.ts';
 import type { ConversionReport, ConversionResult, Source, SourceGraph, SourceStep, Status, StepReport } from './types.ts';
 import { renderMarkdown } from './report/render.ts';
 import { safeFileName, uniqueName } from './util/names.ts';
+import { translateZapierExpr, translateZapierJs } from './zapier/expr.ts';
+import { parseZapier, zapierLabel } from './zapier/parse.ts';
+import { InputError } from './types.ts';
 
 export interface RefCtx {
   refName(id: string): string | undefined;
@@ -39,6 +43,7 @@ interface StepOut {
   report: StepReport;
 }
 
+const NODE_SCHEDULE = 'n8n-nodes-base.scheduleTrigger';
 const isTriggerType = (type: string) => /(trigger|webhook)$/i.test(type) && !/respondToWebhook$/.test(type);
 
 function slugify(name: string): string {
@@ -265,6 +270,9 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     planned.unshift({ ...node, key: 'trigger', wanted: name });
     edges.unshift({ from: 'trigger', to: firstOut.entry });
     if (note) extraNotes.push(note);
+    if (g.source === 'zapier' && node.type === NODE_SCHEDULE) {
+      extraNotes.push(`Zapier checked "${first!.label}" for new data every few minutes; this workflow runs every 15 minutes: change the Schedule, or use the app's trigger node if n8n has one.`);
+    }
   }
 
   const { workflow } = buildWorkflow(g.name, planned, edges);
@@ -327,4 +335,26 @@ export function writeResult(res: ConversionResult, dir: string): { workflowPath:
   writeFileSync(p.reportPath, renderMarkdown(res.report), { flag: 'wx' });
   writeFileSync(p.reportJsonPath, JSON.stringify(res.report, null, 2) + '\n', { flag: 'wx' });
   return p;
+}
+
+const ZAPIER: Dialect = {
+  source: 'zapier',
+  ops: ZAPIER_OPS,
+  translate(refs) {
+    return { expr: (s) => translateZapierExpr(s, refs), js: (s) => translateZapierJs(s, refs) };
+  },
+  manual: suggestFor,
+  label: zapierLabel,
+};
+
+/** One result per zap; `zaps` picks zaps by id or title (case does not matter). */
+export function convertZapier(input: unknown, opts: { zaps?: string[] } = {}): ConversionResult[] {
+  const graphs = parseZapier(input);
+  let chosen = graphs;
+  if (opts.zaps?.length) {
+    const wanted = opts.zaps.map((z) => z.trim().toLowerCase());
+    chosen = graphs.filter((g) => wanted.includes(g.name.toLowerCase()) || wanted.includes(String(g.zapId ?? '').toLowerCase()));
+    if (!chosen.length) throw new InputError(`No zap matches ${opts.zaps.map((z) => `"${z}"`).join(', ')}; the export has: ${graphs.map((g) => g.name).join(', ')}.`);
+  }
+  return chosen.map((g) => convertGraph(g, ZAPIER));
 }

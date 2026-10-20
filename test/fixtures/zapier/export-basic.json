@@ -1,0 +1,42 @@
+{
+  "metadata": { "version": 2, "exported_at": "2026-10-20T10:00:00+00:00" },
+  "zaps": [
+    {
+      "id": 301001,
+      "title": "Lead routing",
+      "status": "on",
+      "nodes": {
+        "1": { "id": 1, "parent_id": null, "root_id": null, "type_of": "read", "selected_api": "WebHookCLIAPI@1.0.22", "action": "hook_v2", "title": "New lead", "params": {}, "authentication_id": null },
+        "2": { "id": 2, "parent_id": 1, "root_id": 1, "type_of": "filter", "selected_api": "FilterAPI", "action": "filter", "title": "Only real leads", "params": { "filter_criteria": [
+          { "id": 11, "group": 100, "key": "1__email", "value": "", "match": "iexist", "action": "continue" },
+          { "id": 12, "group": 100, "key": "1__email", "value": "@test.", "match": "icontains", "action": "stop" },
+          { "id": 13, "group": 200, "key": "1__source", "value": "partner", "match": "iexact", "action": "continue" }
+        ] } },
+        "3": { "id": 3, "parent_id": 2, "root_id": 1, "type_of": "write", "selected_api": "ZapierFormatterCLIAPI@1.0.0", "action": "text_line_item", "title": "Name in title case", "params": { "transform": "string.titlecase", "inputs": "{{1__name}}" } },
+        "4": { "id": 4, "parent_id": 3, "root_id": 1, "type_of": "write", "selected_api": "BranchingAPI", "action": "branch", "params": {} },
+        "5": { "id": 5, "parent_id": 4, "root_id": 1, "type_of": "filter", "selected_api": "BranchingAPI", "action": "filter", "title": "Germany", "params": { "path_eval_index": 0, "filter_criteria": [{ "id": 21, "group": 1, "key": "1__country", "value": "DE", "match": "iexact", "action": "continue" }] } },
+        "6": { "id": 6, "parent_id": 4, "root_id": 1, "type_of": "filter", "selected_api": "BranchingAPI", "action": "filter", "title": "Big corporate", "params": { "path_eval_index": 1, "filter_criteria": [
+          { "id": 22, "group": 2, "key": "1__amount", "value": "100", "match": "igreater", "action": "continue" },
+          { "id": 23, "group": 2, "key": "{{=gives['1']['company']['domain']}}", "value": "corp", "match": "icontains", "action": "continue" }
+        ] } },
+        "7": { "id": 7, "parent_id": 4, "root_id": 1, "type_of": "filter", "selected_api": "BranchingAPI", "action": "filter", "title": "Everyone else", "params": { "path_eval_index": 2 } },
+        "8": { "id": 8, "parent_id": 5, "root_id": 1, "type_of": "write", "selected_api": "WebHookCLIAPI@1.0.22", "action": "post", "title": "Send to the German CRM", "params": { "url": "https://crm.example.de/api/leads", "payload_type": "json", "wrap_in_array": "no", "unflatten": "yes", "data": { "name": "{{3__output}}", "email": "{{1__email}}", "tags": "{{1__tags__0}}" }, "headers": { "X-Api-Key": "abc123" } } },
+        "9": { "id": 9, "parent_id": 6, "root_id": 1, "type_of": "write", "selected_api": "SlackCLIAPI@1.19.0", "action": "channel_message", "title": "Tell sales", "params": { "channel": "C0123", "text": "Big lead: {{3__output}} ({{1__amount}} EUR)", "as_bot": "yes" }, "authentication_id": 555 },
+        "10": { "id": 10, "parent_id": 7, "root_id": 1, "type_of": "write", "selected_api": "DelayCLIAPI@1.0.0", "action": "delay_for", "title": "Wait a bit", "params": { "time_delay_for_value": "5", "time_delay_for_unit": "minutes" } },
+        "11": { "id": 11, "parent_id": 10, "root_id": 1, "type_of": "write", "selected_api": "WebHookCLIAPI@1.0.22", "action": "get", "title": "Look up the company", "params": { "url": "https://api.example.com/companies", "params": { "domain": "{{1__company__domain}}" }, "headers": {} } }
+      }
+    },
+    {
+      "id": 301002,
+      "title": "Daily totals",
+      "status": "off",
+      "nodes": {
+        "1": { "id": 1, "parent_id": null, "root_id": null, "type_of": "read", "selected_api": "ScheduleAPI", "action": "every_day", "title": "Every morning", "params": { "time_of_day": "9", "trigger_on_weekends": "no" } },
+        "2": { "id": 2, "parent_id": 1, "root_id": 1, "type_of": "write", "selected_api": "CodeCLIAPI@1.0.0", "action": "01929fad-d3dd-62c2-52ed-7868d5fcc691", "title": "Add one", "params": { "input": { "base": "{{zap_meta_timestamp}}" }, "code": "const n = Number(inputData.base) + 1;\noutput = { next: n };" } },
+        "3": { "id": 3, "parent_id": 2, "root_id": 1, "type_of": "write", "selected_api": "StorageCLIAPI@1.2.1", "action": "set_value", "title": "Remember", "params": { "key": "last_run", "value": "{{2__next}}" } },
+        "4": { "id": 4, "parent_id": 3, "root_id": 1, "type_of": "write", "selected_api": "CodeCLIAPI@1.0.0", "action": "01929fad-d3f6-c57c-1b40-ef8691be1f86", "title": "Python step", "params": { "input": { "value": "{{2__next}}" }, "code": "output = {'double': int(input_data['value']) * 2}" } },
+        "5": { "id": 5, "parent_id": 4, "root_id": 1, "type_of": "write", "selected_api": "ZapierFormatterCLIAPI@1.0.0", "action": "datetime_line_item", "title": "Format date", "params": { "transform": "date.formatting", "inputs": "{{zap_meta_utc_iso}}", "to_format": "YYYY-MM-DD", "to_timezone": "Europe/Berlin" } }
+      }
+    }
+  ]
+}

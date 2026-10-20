@@ -44,6 +44,8 @@ export interface SourceEdge {
 export interface SourceGraph {
   source: Source;
   name: string;
+  /** Zapier: the zap's id in the export. */
+  zapId?: string;
   steps: SourceStep[];
   edges: SourceEdge[];
   schedule?: { kind: 'interval' | 'cron' | 'instant' | 'daily' | 'weekly' | 'monthly' | 'once'; value?: string | number };

@@ -10,6 +10,7 @@ import type { MapCtx } from './registry.ts';
 
 export interface OpSpec {
   type: 'string' | 'number' | 'dateTime' | 'boolean' | 'array';
+  /** n8n operator; empty when only the JavaScript form can express it. */
   operation: string;
   single?: boolean;
   ci?: boolean;
@@ -83,7 +84,7 @@ export function conditionParameters(groups: ConditionGroup, ops: Record<string, 
   const flat = specs.flat();
   const textCi = flat.filter((x) => x?.type === 'string' && !x.single).map((x) => !!x?.ci);
   const ciMixed = textCi.length > 0 && new Set(textCi).size > 1;
-  const native = !unknown.length && !ciMixed && (groups.length === 1 || groups.every((g) => g.length === 1));
+  const native = !unknown.length && !ciMixed && flat.every((x) => x?.operation) && (groups.length === 1 || groups.every((g) => g.length === 1));
   const options = { caseSensitive: !(textCi.length > 0 && textCi.every(Boolean)), leftValue: '', typeValidation: 'loose', version: 3 };
 
   if (native) {
@@ -105,3 +106,43 @@ export function conditionParameters(groups: ConditionGroup, ops: Record<string, 
   const conditions = [{ id: randomUUID(), leftValue: `={{ ${js} }}`, rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }];
   return { conditions: { options: { ...options, caseSensitive: true }, conditions, combinator: 'and' }, looseTypeValidation: true, options: {} };
 }
+
+// ---------- Zapier ----------
+
+/** Negated n8n operation, for Zapier's `action: stop`. */
+const NEGATE: Record<string, string> = {
+  equals: 'notEquals', contains: 'notContains', startsWith: 'notStartsWith', endsWith: 'notEndsWith', exists: 'notExists',
+  regex: 'notRegex', gt: 'lte', lt: 'gte', true: 'false', after: 'beforeOrEquals', before: 'afterOrEquals',
+};
+
+const isIn = (l: string, r: string, ci: boolean) => {
+  const f = ci ? lc : s;
+  return `${f(r)}.split(',').map((x) => x.trim()).includes(${f(l)}.trim())`;
+};
+
+const ZAPIER_BASE: Record<string, OpSpec> = {
+  iexact: text('equals', (l, r) => `${lc(l)} === ${lc(r)}`, true),
+  exact: text('equals', (l, r) => `${s(l)} === ${s(r)}`),
+  icontains: text('contains', (l, r) => `${lc(l)}.includes(${lc(r)})`, true),
+  contains: text('contains', (l, r) => `${s(l)}.includes(${s(r)})`),
+  istartswith: text('startsWith', (l, r) => `${lc(l)}.startsWith(${lc(r)})`, true),
+  startswith: text('startsWith', (l, r) => `${s(l)}.startsWith(${s(r)})`),
+  iendswith: text('endsWith', (l, r) => `${lc(l)}.endsWith(${lc(r)})`, true),
+  endswith: text('endsWith', (l, r) => `${s(l)}.endsWith(${s(r)})`),
+  ireversecontains: text('', (l, r) => isIn(l, r, true), true),
+  reversecontains: text('', (l, r) => isIn(l, r, false)),
+  regex: text('regex', (l, r) => `new RegExp(${s(r)}).test(${s(l)})`),
+  igreater: { type: 'number', operation: 'gt', js: (l, r) => `${num(l)} > ${num(r)}` },
+  iless: { type: 'number', operation: 'lt', js: (l, r) => `${num(l)} < ${num(r)}` },
+  iexist: { type: 'string', operation: 'exists', single: true, js: (l) => exists(l) },
+  boolean: { type: 'boolean', operation: 'true', single: true, js: (l) => `[true, 'true', 'True', 1, '1', 'yes'].includes(${l})` },
+  datetime_after: { type: 'dateTime', operation: 'after', js: (l, r) => `${date(l)} > ${date(r)}` },
+  datetime_before: { type: 'dateTime', operation: 'before', js: (l, r) => `${date(l)} < ${date(r)}` },
+  datetime_equals: { type: 'dateTime', operation: 'equals', js: (l, r) => `${date(l)} === ${date(r)}` },
+};
+
+/** Zapier filter operators as `<match>:continue` and their negations `<match>:stop`. */
+export const ZAPIER_OPS: Record<string, OpSpec> = Object.fromEntries(Object.entries(ZAPIER_BASE).flatMap(([match, spec]) => [
+  [`${match}:continue`, spec],
+  [`${match}:stop`, { ...spec, operation: spec.operation ? NEGATE[spec.operation] ?? '' : '', js: (l: string, r: string) => `!(${spec.js(l, r)})` }],
+]));

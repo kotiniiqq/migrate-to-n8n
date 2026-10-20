@@ -1,0 +1,472 @@
+{
+  "workflow": {
+    "name": "Lead routing",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "New lead",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "lead-routing",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "webhookId": "id-2"
+      },
+      {
+        "id": "id-3",
+        "name": "Only real leads",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-4",
+                "leftValue": "={{ (($('New lead').item.json.body.email !== undefined && $('New lead').item.json.body.email !== null && $('New lead').item.json.body.email !== '') && !(String($('New lead').item.json.body.email ?? '').toLowerCase().includes(String(\"@test.\" ?? '').toLowerCase()))) || (String($('New lead').item.json.body.source ?? '').toLowerCase() === String(\"partner\" ?? '').toLowerCase()) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-5",
+        "name": "Name in title case",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-6",
+                "name": "output",
+                "value": "={{ String($('New lead').item.json.body.name).toTitleCase() }}",
+                "type": "string"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-7",
+        "name": "Paths",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          780,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "id-8",
+        "name": "Send to the German CRM",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1300,
+          -180
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://crm.example.de/api/leads",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-Api-Key",
+                "value": "abc123"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ \"name\": $('Name in title case').item.json.output, \"email\": $('New lead').item.json.body.email, \"tags\": $('New lead').item.json.body.tags[0] }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "id-9",
+        "name": "Tell sales",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.4,
+        "position": [
+          1300,
+          0
+        ],
+        "parameters": {},
+        "disabled": true
+      },
+      {
+        "id": "id-10",
+        "name": "Wait a bit",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          1040,
+          180
+        ],
+        "parameters": {
+          "amount": 5,
+          "unit": "minutes"
+        }
+      },
+      {
+        "id": "id-11",
+        "name": "Look up the company",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1300,
+          180
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "https://api.example.com/companies",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "domain",
+                "value": "={{ $('New lead').item.json.body.company.domain }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "id-12",
+        "name": "Germany",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          1040,
+          -180
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-13",
+                "leftValue": "={{ $('New lead').item.json.body.country }}",
+                "rightValue": "DE",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-14",
+        "name": "Big corporate",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          1040,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "id-15",
+                "leftValue": "={{ $('New lead').item.json.body.amount }}",
+                "rightValue": 100,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              },
+              {
+                "id": "id-16",
+                "leftValue": "={{ $('New lead').item.json.body.company.domain }}",
+                "rightValue": "corp",
+                "operator": {
+                  "type": "string",
+                  "operation": "contains"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-17",
+        "name": "Note: Tell sales",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1260,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Tell sales\nUse the Slack node (placed here, disabled): choose the operation closest to \"Channel message\", connect the credential, map the fields, then enable it. Fields from Zapier: channel ← C0123; text ← Big lead: {{ $('Name in title case').item.json.output }} ({{ $('New lead').item.json.body.amount }} EUR); as_bot ← yes.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      }
+    ],
+    "connections": {
+      "New lead": {
+        "main": [
+          [
+            {
+              "node": "Only real leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Only real leads": {
+        "main": [
+          [
+            {
+              "node": "Name in title case",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Name in title case": {
+        "main": [
+          [
+            {
+              "node": "Paths",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paths": {
+        "main": [
+          [
+            {
+              "node": "Germany",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Big corporate",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Wait a bit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Germany": {
+        "main": [
+          [
+            {
+              "node": "Send to the German CRM",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Big corporate": {
+        "main": [
+          [
+            {
+              "node": "Tell sales",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait a bit": {
+        "main": [
+          [
+            {
+              "node": "Look up the company",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "zapier",
+    "workflowName": "Lead routing",
+    "totals": {
+      "converted": 7,
+      "review": 0,
+      "manual": 1
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "New lead",
+        "sourceKey": "WebHookCLIAPI:hook_v2",
+        "n8nNodes": [
+          "New lead"
+        ],
+        "status": "converted",
+        "notes": [
+          "The webhook gets a new URL in n8n: point the sender to it. Zapier accepted any method; this listens to POST."
+        ]
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "Only real leads",
+        "sourceKey": "FilterAPI:filter",
+        "n8nNodes": [
+          "Only real leads"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "Name in title case",
+        "sourceKey": "ZapierFormatterCLIAPI:text_line_item",
+        "n8nNodes": [
+          "Name in title case"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Paths",
+        "sourceKey": "BranchingAPI:branch",
+        "n8nNodes": [
+          "Paths"
+        ],
+        "status": "converted",
+        "notes": [
+          "Every path whose conditions match runs, as in Zapier."
+        ]
+      },
+      {
+        "sourceId": "8",
+        "sourceLabel": "Send to the German CRM",
+        "sourceKey": "WebHookCLIAPI:post",
+        "n8nNodes": [
+          "Germany",
+          "Send to the German CRM"
+        ],
+        "status": "converted",
+        "notes": [
+          "A secret is sent in a header; consider moving it to an n8n \"Header Auth\" credential."
+        ]
+      },
+      {
+        "sourceId": "9",
+        "sourceLabel": "Tell sales",
+        "sourceKey": "SlackCLIAPI:channel_message",
+        "n8nNodes": [
+          "Big corporate",
+          "Tell sales"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Channel message\", connect the credential, map the fields, then enable it. Fields from Zapier: channel ← C0123; text ← Big lead: {{ $('Name in title case').item.json.output }} ({{ $('New lead').item.json.body.amount }} EUR); as_bot ← yes."
+      },
+      {
+        "sourceId": "10",
+        "sourceLabel": "Wait a bit",
+        "sourceKey": "DelayCLIAPI:delay_for",
+        "n8nNodes": [
+          "Wait a bit"
+        ],
+        "status": "converted",
+        "notes": []
+      },
+      {
+        "sourceId": "11",
+        "sourceLabel": "Look up the company",
+        "sourceKey": "WebHookCLIAPI:get",
+        "n8nNodes": [
+          "Look up the company"
+        ],
+        "status": "converted",
+        "notes": []
+      }
+    ],
+    "credentials": [],
+    "webhooks": [
+      {
+        "node": "New lead",
+        "path": "lead-routing"
+      }
+    ],
+    "placeholders": [],
+    "nextSteps": [
+      "Point the senders to the new webhook URL: \"New lead\" (…/webhook/lead-routing).",
+      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}

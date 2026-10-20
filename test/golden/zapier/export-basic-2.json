@@ -1,0 +1,315 @@
+{
+  "workflow": {
+    "name": "Daily totals",
+    "nodes": [
+      {
+        "id": "id-1",
+        "name": "Every morning",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 9 * * 1-5"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "id-2",
+        "name": "Add one (inputs)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-3",
+                "name": "base",
+                "value": "={{ Math.floor($now.toSeconds()) }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "id-4",
+        "name": "Add one",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          520,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "// Code by Zapier, wrapped: inputData holds the input fields, output (or a return value) becomes the item.\nconst inputData = $json;\nconst result = await (async () => {\n  let output;\n  const n = Number(inputData.base) + 1;\n  output = { next: n };\n  return output;\n})();\nreturn { json: Array.isArray(result) ? { items: result } : (result ?? {}) };"
+        }
+      },
+      {
+        "id": "id-5",
+        "name": "Remember",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          780,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "const store = $getWorkflowStaticData('global');\nconst key = String(\"last_run\");\nstore[key] = $('Add one').item.json.next;\nreturn { json: { key, value: store[key] } };"
+        }
+      },
+      {
+        "id": "id-6",
+        "name": "Python step (inputs)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1040,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-7",
+                "name": "value",
+                "value": "={{ $('Add one').item.json.next }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "id-8",
+        "name": "Python step",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1300,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "pythonNative",
+          "pythonCode": "# Code by Zapier (Python), copied as is.\n# Inputs in Zapier: value (they arrive from the step before this one).\ninput_data = {}\noutput = {'double': int(input_data['value']) * 2}"
+        },
+        "disabled": true
+      },
+      {
+        "id": "id-9",
+        "name": "Format date",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1560,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "id-10",
+                "name": "output",
+                "value": "={{ DateTime.fromISO(String($now.toUTC().toISO())).setZone('Europe/Berlin').toFormat('yyyy-LL-dd') }}",
+                "type": "string"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "id-11",
+        "name": "Note: Python step",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1260,
+          -220
+        ],
+        "parameters": {
+          "content": "### ⚠ Python step\nPython from Zapier: n8n runs it in the Code node, but reads inputs differently. Replace `input_data` with the item (`_item[\"json\"]` in n8n 2.x, `_input.item.json` in 1.x), keep `output`/`return` as a dict, then enable it.",
+          "height": 200,
+          "width": 320,
+          "color": 3
+        }
+      }
+    ],
+    "connections": {
+      "Add one (inputs)": {
+        "main": [
+          [
+            {
+              "node": "Add one",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Python step (inputs)": {
+        "main": [
+          [
+            {
+              "node": "Python step",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every morning": {
+        "main": [
+          [
+            {
+              "node": "Add one (inputs)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Add one": {
+        "main": [
+          [
+            {
+              "node": "Remember",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remember": {
+        "main": [
+          [
+            {
+              "node": "Python step (inputs)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Python step": {
+        "main": [
+          [
+            {
+              "node": "Format date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "pinData": {}
+  },
+  "report": {
+    "source": "zapier",
+    "workflowName": "Daily totals",
+    "totals": {
+      "converted": 2,
+      "review": 2,
+      "manual": 1
+    },
+    "steps": [
+      {
+        "sourceId": "1",
+        "sourceLabel": "Every morning",
+        "sourceKey": "ScheduleAPI:every_day",
+        "n8nNodes": [
+          "Every morning"
+        ],
+        "status": "converted",
+        "notes": [
+          "Weekends are skipped, as in Zapier (a cron rule for Monday to Friday).",
+          "Check the time zone in n8n (Settings → Time zone); Zapier used the account time zone."
+        ]
+      },
+      {
+        "sourceId": "2",
+        "sourceLabel": "Add one",
+        "sourceKey": "CodeCLIAPI:01929fad-d3dd-62c2-52ed-7868d5fcc691",
+        "n8nNodes": [
+          "Add one (inputs)",
+          "Add one"
+        ],
+        "status": "review",
+        "notes": [
+          "Zapier ran the code in its own sandbox: check it once in n8n (fetch, packages and returning a list of items behave differently)."
+        ]
+      },
+      {
+        "sourceId": "3",
+        "sourceLabel": "Remember",
+        "sourceKey": "StorageCLIAPI:set_value",
+        "n8nNodes": [
+          "Remember"
+        ],
+        "status": "review",
+        "notes": [
+          "Storage by Zapier became this workflow's static data: it is kept between production runs of this workflow only (not in test runs, not shared with other workflows). Use a Data Table to share values."
+        ]
+      },
+      {
+        "sourceId": "4",
+        "sourceLabel": "Python step",
+        "sourceKey": "CodeCLIAPI:01929fad-d3f6-c57c-1b40-ef8691be1f86",
+        "n8nNodes": [
+          "Python step (inputs)",
+          "Python step"
+        ],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Python from Zapier: n8n runs it in the Code node, but reads inputs differently. Replace `input_data` with the item (`_item[\"json\"]` in n8n 2.x, `_input.item.json` in 1.x), keep `output`/`return` as a dict, then enable it."
+      },
+      {
+        "sourceId": "5",
+        "sourceLabel": "Format date",
+        "sourceKey": "ZapierFormatterCLIAPI:datetime_line_item",
+        "n8nNodes": [
+          "Format date"
+        ],
+        "status": "converted",
+        "notes": [
+          "Zapier and n8n read unusual date texts differently; check the output once."
+        ]
+      }
+    ],
+    "credentials": [],
+    "webhooks": [],
+    "placeholders": [],
+    "nextSteps": [
+      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
+      "Check 2 steps marked \"review\".",
+      "Run the workflow once with test data, then activate (publish) it."
+    ]
+  }
+}
