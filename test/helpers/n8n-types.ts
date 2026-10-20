@@ -86,7 +86,9 @@ function isShown(prop: Prop, params: Record<string, unknown>, props: Prop[], ver
     if (name === '@version') return allowed.some((a) => versionMatches(a, version));
     if (name.startsWith('@') || name.startsWith('/')) return true;
     const v = value(name);
-    return allowed.some((a) => (a && typeof a === 'object' && '_cnd' in (a as object) ? true : a === v));
+    // A multi-option value shows the field when any of its choices is allowed.
+    const values = Array.isArray(v) ? v : [v];
+    return allowed.some((a) => (a && typeof a === 'object' && '_cnd' in (a as object) ? true : values.includes(a)));
   };
   const show = prop.displayOptions?.show as Record<string, unknown[]> | undefined;
   const hide = prop.displayOptions?.hide as Record<string, unknown[]> | undefined;

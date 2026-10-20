@@ -127,8 +127,19 @@
           1300,
           0
         ],
-        "parameters": {},
-        "disabled": true
+        "parameters": {
+          "resource": "message",
+          "operation": "post",
+          "select": "channel",
+          "messageType": "text",
+          "text": "=Big lead: {{ $('Name in title case').item.json.output }} ({{ $('New lead').item.json.body.amount }} EUR)",
+          "channelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "C0123"
+          },
+          "otherOptions": {}
+        }
       },
       {
         "id": "id-10",
@@ -244,22 +255,6 @@
           "looseTypeValidation": true,
           "options": {}
         }
-      },
-      {
-        "id": "id-17",
-        "name": "Note: Tell sales",
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1260,
-          -220
-        ],
-        "parameters": {
-          "content": "### ⚠ Tell sales\nUse the Slack node (placed here, disabled): choose the operation closest to \"Channel message\", connect the credential, map the fields, then enable it. Fields from Zapier: channel ← C0123; text ← Big lead: {{ $('Name in title case').item.json.output }} ({{ $('New lead').item.json.body.amount }} EUR); as_bot ← yes.",
-          "height": 200,
-          "width": 320,
-          "color": 3
-        }
       }
     ],
     "connections": {
@@ -360,9 +355,9 @@
     "source": "zapier",
     "workflowName": "Lead routing",
     "totals": {
-      "converted": 7,
+      "converted": 8,
       "review": 0,
-      "manual": 1
+      "manual": 0
     },
     "steps": [
       {
@@ -430,9 +425,8 @@
           "Big corporate",
           "Tell sales"
         ],
-        "status": "manual",
-        "notes": [],
-        "suggestion": "Use the Slack node (placed here, disabled): choose the operation closest to \"Channel message\", connect the credential, map the fields, then enable it. Fields from Zapier: channel ← C0123; text ← Big lead: {{ $('Name in title case').item.json.output }} ({{ $('New lead').item.json.body.amount }} EUR); as_bot ← yes."
+        "status": "converted",
+        "notes": []
       },
       {
         "sourceId": "10",
@@ -455,7 +449,15 @@
         "notes": []
       }
     ],
-    "credentials": [],
+    "credentials": [
+      {
+        "app": "Slack",
+        "credentialType": "slackApi",
+        "nodes": [
+          "Tell sales"
+        ]
+      }
+    ],
     "webhooks": [
       {
         "node": "New lead",
@@ -464,8 +466,8 @@
     ],
     "placeholders": [],
     "nextSteps": [
+      "Connect credentials in n8n for: Slack.",
       "Point the senders to the new webhook URL: \"New lead\" (…/webhook/lead-routing).",
-      "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

@@ -36,9 +36,12 @@ function objectJs(data: Record<string, unknown>, ctx: MapCtx, unflatten: boolean
 
 // ---------- Webhooks by Zapier ----------
 
-for (const action of ['hook_v2', 'hook', 'hook_raw', 'catch_hook', 'catch_raw_hook']) {
+// Zapier exports spell the app both ways.
+const WEBHOOK_APIS = ['WebHookCLIAPI', 'WebhooksCLIAPI'];
+
+for (const api of WEBHOOK_APIS) for (const action of ['hook_v2', 'hook', 'hook_raw', 'catch_hook', 'catch_raw_hook']) {
   register({
-    source: 'zapier', key: `WebHookCLIAPI:${action}`, label: 'Webhook',
+    source: 'zapier', key: `${api}:${action}`, label: 'Webhook',
     build(ctx) {
       const path = ctx.slug || `zap-${ctx.step.id}`;
       ctx.note('The webhook gets a new URL in n8n: point the sender to it. Zapier accepted any method; this listens to POST.');
@@ -52,16 +55,23 @@ for (const action of ['hook_v2', 'hook', 'hook_raw', 'catch_hook', 'catch_raw_ho
   });
 }
 
+/** Headers come as a key/value object, or as text with one "Name: value" per line (custom requests). */
+function headerPairs(v: unknown, ctx: MapCtx) {
+  if (typeof v !== 'string') return pairs(v, ctx);
+  return v.split(/\r?\n/).map((l) => /^\s*([^:]+?)\s*:\s*(.*)$/.exec(l)).filter((m): m is RegExpExecArray => !!m)
+    .map((m) => ({ name: m[1], value: ctx.expr(m[2]) }));
+}
+
 function request(action: string, method: string | null) {
-  register({
-    source: 'zapier', key: `WebHookCLIAPI:${action}`, label: 'HTTP Request',
+  for (const api of WEBHOOK_APIS) register({
+    source: 'zapier', key: `${api}:${action}`, label: 'HTTP Request',
     build(ctx): MapOutput {
       const p = ctx.step.params;
       const m = method ?? httpMethod(p.method, ctx, 'POST');
       const params: Record<string, unknown> = { method: m, url: ctx.expr(str(p.url)) };
       const query = pairs(p.params, ctx);
       if (query.length) Object.assign(params, { sendQuery: true, queryParameters: { parameters: query } });
-      const headers = pairs(p.headers, ctx);
+      const headers = headerPairs(p.headers, ctx);
       if (headers.length) Object.assign(params, { sendHeaders: true, headerParameters: { parameters: headers } });
       if (headers.some((h) => /^authorization$/i.test(h.name) || /api[-_]?key|token/i.test(h.name))) {
         ctx.note('A secret is sent in a header; consider moving it to an n8n "Header Auth" credential.');

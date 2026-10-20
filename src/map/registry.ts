@@ -51,6 +51,9 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   airtableTrigger: { type: 'n8n-nodes-base.airtableTrigger', typeVersion: 1 },
   typeformTrigger: { type: 'n8n-nodes-base.typeformTrigger', typeVersion: 1.1 },
   linkedIn: { type: 'n8n-nodes-base.linkedIn', typeVersion: 1 },
+  slackTrigger: { type: 'n8n-nodes-base.slackTrigger', typeVersion: 1 },
+  todoist: { type: 'n8n-nodes-base.todoist', typeVersion: 2.1 },
+  awsS3: { type: 'n8n-nodes-base.awsS3', typeVersion: 2 },
 };
 
 // ---------- the mapping table ----------
