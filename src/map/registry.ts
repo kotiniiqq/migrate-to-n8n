@@ -41,6 +41,11 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   googleGemini: { type: '@n8n/n8n-nodes-langchain.googleGemini', typeVersion: 1 },
   anthropic: { type: '@n8n/n8n-nodes-langchain.anthropic', typeVersion: 1 },
   telegramTrigger: { type: 'n8n-nodes-base.telegramTrigger', typeVersion: 1.2 },
+  markdown: { type: 'n8n-nodes-base.markdown', typeVersion: 1 },
+  twilio: { type: 'n8n-nodes-base.twilio', typeVersion: 1 },
+  whatsApp: { type: 'n8n-nodes-base.whatsApp', typeVersion: 1.1 },
+  rssFeedReadTrigger: { type: 'n8n-nodes-base.rssFeedReadTrigger', typeVersion: 1 },
+  dropbox: { type: 'n8n-nodes-base.dropbox', typeVersion: 1 },
 };
 
 // ---------- the mapping table ----------
