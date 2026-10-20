@@ -92,3 +92,11 @@ test('output and input field labels from the module metadata are kept', () => {
   assert.deepEqual(g.steps[0].outputFields, [{ name: '__ROW_NUMBER__', label: 'Row number' }, { name: '0', label: 'Name (A)' }, { name: '1', label: 'Email (B)' }]);
   assert.deepEqual(g.steps[0].inputFields, { values: [{ name: '0', label: 'Name (A)' }, { name: '1', label: 'Email (B)' }] });
 });
+
+test('modules without an id or with a repeated id still get unique step ids', () => {
+  const m = (id: unknown) => ({ id, module: 'util:SetVariable2', version: 1, mapper: { name: 'x', value: '1' }, metadata: {} });
+  const g = parseMake({ name: 'x', flow: [m(null), m(null), m(5), m(5)] });
+  assert.equal(new Set(g.steps.map((s) => s.id)).size, 4);
+  assert.equal(g.steps[2].id, '5');
+  assert.equal(g.edges.length, 3);
+});

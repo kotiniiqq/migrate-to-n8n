@@ -118,6 +118,7 @@ export function parseMake(input: unknown): SourceGraph {
   const bp = unwrap(input);
   const steps: SourceStep[] = [];
   const edges: SourceEdge[] = [];
+  const ids = new Set<string>();
 
   /** Walk one flow; `entry` links the first module to what came before (a module or a router branch). */
   const walk = (flow: MakeModule[], entry?: { from: string; branch?: SourceEdge['branch'] }) => {
@@ -125,6 +126,9 @@ export function parseMake(input: unknown): SourceGraph {
     for (const [i, m] of flow.entries()) {
       if (!m || typeof m !== 'object' || !m.module) continue;
       const step = toStep(m);
+      // Templates and hand-edited exports can have modules without an id, or the same id twice.
+      if (m.id === null || m.id === undefined || ids.has(step.id)) step.id = `auto-${steps.length + 1}`;
+      ids.add(step.id);
       const cond = conditions(m.filter);
       if (prev?.branch && i === 0) {
         // The filter on the first module of a route is the route's condition.
