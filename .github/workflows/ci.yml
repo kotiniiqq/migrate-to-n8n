@@ -22,7 +22,8 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - name: The package ships no n8n code
-        run: "! npm pack --dry-run 2>&1 | grep -iE 'n8n-nodes|workflow-sdk|\.cache'"
+        run: |
+          ! npm pack --dry-run 2>&1 | grep -iE 'n8n-nodes|workflow-sdk|\.cache'
 
   e2e:
     # Every fixture imported into a real n8n, and the runnable ones called through their webhooks.
