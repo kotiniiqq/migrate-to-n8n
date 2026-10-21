@@ -18,6 +18,7 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   merge: { type: 'n8n-nodes-base.merge', typeVersion: 3.2 },
   wait: { type: 'n8n-nodes-base.wait', typeVersion: 1.1 },
   noOp: { type: 'n8n-nodes-base.noOp', typeVersion: 1 },
+  stopAndError: { type: 'n8n-nodes-base.stopAndError', typeVersion: 1 },
   stickyNote: { type: 'n8n-nodes-base.stickyNote', typeVersion: 1 },
   dataTable: { type: 'n8n-nodes-base.dataTable', typeVersion: 1 },
   dateTime: { type: 'n8n-nodes-base.dateTime', typeVersion: 2 },

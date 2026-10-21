@@ -77,6 +77,11 @@
             "value": "C0456EFGH"
           }
         },
+        "credentials": {
+          "slackApi": {
+            "name": "Slack account"
+          }
+        },
         "retryOnFail": true,
         "maxTries": 4,
         "waitBetweenTries": 5000
@@ -123,11 +128,6 @@
           },
           "looseTypeValidation": true,
           "options": {}
-        },
-        "credentials": {
-          "slackApi": {
-            "name": "Slack account"
-          }
         }
       },
       {
@@ -170,7 +170,35 @@
             "name": "Google Sheets account"
           }
         },
-        "onError": "continueRegularOutput"
+        "onError": "continueErrorOutput"
+      },
+      {
+        "id": "id-9",
+        "name": "Email: Send Email",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          1300,
+          0
+        ],
+        "parameters": {
+          "resource": "email",
+          "operation": "send",
+          "fromEmail": "REPLACE-ME@example.com",
+          "toEmail": "ops@example.com",
+          "subject": "Sheet update failed",
+          "emailFormat": "html",
+          "html": "=Order {{ $('Webhook').item.json.body.order_id }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "credentials": {
+          "smtp": {
+            "name": "SMTP account"
+          }
+        },
+        "disabled": true
       }
     ],
     "connections": {
@@ -179,6 +207,18 @@
           [
             {
               "node": "Slack: Create Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets: Update Row": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Email: Send Email",
               "type": "main",
               "index": 0
             }
@@ -229,8 +269,8 @@
     "workflowName": "Order sync with error handling",
     "totals": {
       "converted": 2,
-      "review": 2,
-      "manual": 1
+      "review": 3,
+      "manual": 0
     },
     "steps": [
       {
@@ -283,17 +323,21 @@
         "notes": [
           "Make wrote these columns by position (A, B, C…); n8n writes by column header: open the node, pick the sheet and map each value to its header.",
           "Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.",
-          "On an error Make ran: \"Email: Send Email\". They are not in the workflow yet: switch \"On Error\" of this node to \"Continue (using error output)\" in n8n and add them on the error output, then on to the next step, as Make resumed."
+          "On an error Make ran \"Email: Send Email\": it is on the error output of this node, disabled; then the item goes on to the next step, as Make resumed. Check it and enable it."
         ]
       },
       {
         "sourceId": "22",
         "sourceLabel": "Email: Send Email",
         "sourceKey": "email:ActionSendEmail",
-        "n8nNodes": [],
-        "status": "manual",
-        "notes": [],
-        "suggestion": "Make ran this when \"Google Sheets: Update Row\" failed. Not in the workflow: build it in n8n on the error output of \"Google Sheets: Update Row\" (its \"On Error\" set to \"Continue (using error output)\")."
+        "n8nNodes": [
+          "Email: Send Email"
+        ],
+        "status": "review",
+        "notes": [
+          "Make ran this when \"Google Sheets: Update Row\" failed; it is placed on the error output of \"Google Sheets: Update Row\", disabled: check it, then enable it.",
+          "Make sent from the connected mailbox; set the sender address in n8n."
+        ]
       }
     ],
     "credentials": [
@@ -301,7 +345,14 @@
         "app": "Slack",
         "credentialType": "slackApi",
         "nodes": [
-          "Has an order"
+          "Slack: Create Message"
+        ]
+      },
+      {
+        "app": "SMTP",
+        "credentialType": "smtp",
+        "nodes": [
+          "Email: Send Email"
         ]
       },
       {
@@ -318,12 +369,19 @@
         "path": "order-sync-with-error-handling-random"
       }
     ],
-    "placeholders": [],
+    "placeholders": [
+      {
+        "node": "Email: Send Email",
+        "field": "fromEmail",
+        "value": "REPLACE-ME@example.com"
+      }
+    ],
     "nextSteps": [
-      "Connect credentials in n8n for: Slack, Google Sheets.",
+      "Connect credentials in n8n for: Slack, SMTP, Google Sheets.",
       "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/order-sync-with-error-handling-random).",
-      "Build 1 Make error-handler step on the error output, as the report suggests.",
-      "Check 2 steps marked \"review\".",
+      "Check 1 Make error-handler step on the error output (disabled), finish it as the report suggests, then enable it.",
+      "Check 3 steps marked \"review\".",
+      "Fill in 1 REPLACE-ME value.",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

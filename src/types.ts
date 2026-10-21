@@ -29,7 +29,7 @@ export interface SourceStep {
   /** Settings of that directive, e.g. Break's `count` of attempts. */
   onErrorParams?: Record<string, unknown>;
   /** Modules of a Make error-handler route that does more than one directive. */
-  errorHandler?: Array<{ id: string; key: string; label: string }>;
+  errorHandler?: SourceStep[];
   connectionRef?: string;
   /** Output fields as the source labels them (Make module metadata), e.g. `0` → "Name (A)". */
   outputFields?: Array<{ name: string; label: string }>;

@@ -1,6 +1,6 @@
 /** Source graph → n8n workflow + report. Shared by Make and Zapier; each source brings its parser,
  *  formula translator and condition operators. */
-import { randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
@@ -42,16 +42,21 @@ interface StepOut {
   status: Status;
   ref?: MapOutput['ref'];
   report: StepReport;
+  /** Last node of a Make error-handler route that resumes: it goes on to the same next steps. */
+  resume?: string;
 }
 
 const NODE_SCHEDULE = 'n8n-nodes-base.scheduleTrigger';
 const isTriggerType = (type: string) => /(trigger|webhook)$/i.test(type) && !/respondToWebhook$/.test(type);
 
-/** The scenario name made URL-safe, with a random end: two workflows of the same name ("Untitled Zap") must not
- *  share a webhook path, or n8n refuses to activate the second. */
-function slugify(name: string): string {
-  const s = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
-  return `${s || 'scenario'}-${randomBytes(4).toString('hex')}`;
+/** The scenario name made URL-safe, with an end that stays the same when the same scenario is converted again (the
+ *  senders keep their URL) but differs between two workflows of the same name ("Untitled Zap"), or n8n refuses to
+ *  activate the second: it comes from the zap id or the Make webhook ids, else from the name. */
+function slugify(g: SourceGraph): string {
+  const s = g.name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+  const hooks = g.steps.map((st) => st.params.hook).filter((h) => typeof h === 'number' || (typeof h === 'string' && h));
+  const basis = [g.source, g.zapId ?? '', hooks.join(','), g.name].join('|');
+  return `${s || 'scenario'}-${createHash('sha256').update(basis).digest('hex').slice(0, 8)}`;
 }
 
 /** Nodes that mappings add around an app node; the credential belongs to the app node. */
@@ -146,7 +151,7 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
   const vars = new Map<string, { name: string; stepId: string }>();
   const keys = new Set(g.steps.map((s) => s.key));
   const ancestors = ancestorsOf(g);
-  const slug = slugify(g.name);
+  const slug = slugify(g);
   const extraNotes: string[] = [];
 
   /** Context for mapping one step; notes and status land in `sink`. */
@@ -218,7 +223,19 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     };
   };
 
-  // Modules of Make error-handler routes: reported after their step, built by hand.
+  /** The app node of a step (helpers such as a Filter or Code node may come after it) gets the credential without an
+   *  id: n8n keeps it for picking, and `check` reports it until one is selected. */
+  const addCredential = (res: MapOutput, nodes: PlannedNode[], names: string[]) => {
+    const at = Math.max(0, res.nodes.map((n) => !HELPER_TYPES.has(n.type)).lastIndexOf(true));
+    const { app, credentialType } = res.credential!;
+    nodes[at].credentials = { ...nodes[at].credentials, [credentialType]: { name: `${app} account` } };
+    const k = `${app}|${credentialType}`;
+    const c = credentials.get(k) ?? { ...res.credential!, nodes: [] };
+    c.nodes.push(names[at]);
+    credentials.set(k, c);
+  };
+
+  // Modules of Make error-handler routes: reported after their step, placed on its error output.
   const handlerReports = new Map<string, StepReport[]>();
   for (const step of g.steps) {
     const sink = { notes: [] as string[], status: 'converted' as Status };
@@ -261,7 +278,7 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       const directive = step.onError.replace(/^builtin:/, '');
       if (directive === 'Ignore') {
         work.onError = 'continueErrorOutput';
-        ctx.note('Errors here are ignored: the item stops at this step (the error output is left unconnected), like Make "Ignore".');
+        if (!step.errorHandler?.length) ctx.note('Errors here are ignored: the item stops at this step (the error output is left unconnected), like Make "Ignore".');
       } else if (directive === 'Resume') {
         work.onError = 'continueRegularOutput';
         ctx.note('Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.', true);
@@ -284,17 +301,70 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       }
       status = worst(status, sink.status);
     }
+    // Modules of a Make error-handler route go on the error output of the node, disabled until checked. After them the
+    // item stops (Ignore), goes on to the next steps (Resume), or a Stop and Error node fails the run (Break and the rest).
+    let resume: string | undefined;
     if (step.errorHandler?.length) {
-      const ran = step.errorHandler.map((h) => `"${h.label}"`).join(', ');
-      const how = work.onError === 'continueErrorOutput'
-        ? 'add them in n8n on the error output of this node (already turned on)'
-        : `switch "On Error" of this node to "Continue (using error output)" in n8n and add them on the error output${work.onError === 'continueRegularOutput' ? ', then on to the next step, as Make resumed' : ''}`;
-      ctx.note(`On an error Make ran: ${ran}. They are not in the workflow yet: ${how}.`, true);
+      const directive = (step.onError ?? 'builtin:Ignore').replace(/^builtin:/, '');
+      const resumes = work.onError === 'continueRegularOutput';
+      work.onError = 'continueErrorOutput';
+      let prevKey = exitKey;
+      let output: number | undefined = 1;
+      const reports: StepReport[] = [];
+      for (const h of step.errorHandler) {
+        // Formulas in the handler can read every step that ran before the failing one, and the failing one itself.
+        ancestors.set(h.id, new Set([...(ancestors.get(step.id) ?? []), step.id]));
+        const hsink = { notes: [] as string[], status: 'converted' as Status };
+        const hctx = makeCtx(h, hsink);
+        const hentry = findEntry(d.source, h.key);
+        let hres: MapOutput;
+        try {
+          hres = hentry ? hentry.build(hctx) : d.manual(h, hctx);
+        } catch (e) {
+          hctx.note(`Automatic conversion stopped: ${(e as Error).message}`);
+          hres = d.manual(h, hctx);
+        }
+        if (!hres.nodes.length) hres = { ...hres, nodes: [n8nNode('noOp', h.label, {})] };
+        for (const n of hres.notes ?? []) hctx.note(n);
+        const hstatus = worst(hsink.status, hres.status) === 'manual' ? 'manual' : 'review';
+        const hnames: string[] = [];
+        hres.nodes.forEach((n, i) => {
+          const name = reserve(i === hres.nodes.length - 1 ? h.label : n.wanted);
+          const key = `${step.id}!${h.id}#${i}`;
+          quiet(n);
+          planned.push({ ...n, key, wanted: name, disabled: true });
+          edges.push({ from: prevKey, to: key, ...(output === undefined ? {} : { output }) });
+          prevKey = key;
+          output = undefined;
+          hnames.push(name);
+        });
+        const hown = new Map(hres.nodes.map((n, i) => [n.wanted, hnames[i]]));
+        for (const p of planned.slice(-hres.nodes.length)) {
+          if (!p.named) continue;
+          p.parameters = p.named((w) => hown.get(w) ?? w);
+          delete p.named;
+        }
+        if (hres.credential) addCredential(hres, planned.slice(planned.length - hres.nodes.length), hnames);
+        for (const p of hres.placeholders ?? []) placeholders.push({ node: hnames[hnames.length - 1], ...p });
+        const where = `Make ran this when "${step.label}" failed; it is placed on the error output of "${work.wanted}", disabled`;
+        const report: StepReport = { sourceId: h.id, sourceLabel: h.label, sourceKey: h.key, n8nNodes: hnames, status: hstatus, notes: hsink.notes };
+        if (hstatus === 'manual') report.suggestion = `${where}. ${hres.suggestion ?? 'Finish it by hand, then enable it.'}`;
+        else hsink.notes.unshift(`${where}: check it, then enable it.`);
+        reports.push(report);
+      }
+      handlerReports.set(step.id, reports);
+      if (resumes) {
+        resume = prevKey;
+      } else if (directive !== 'Ignore') {
+        const name = reserve(`Stop: ${step.label} failed`);
+        const key = `${step.id}!stop`;
+        planned.push({ ...n8nNode('stopAndError', name, { errorMessage: `"${step.label}" failed (Make: error handler ended with ${directive})` }), key, wanted: name });
+        edges.push({ from: prevKey, to: key });
+      }
+      const then = resumes ? 'then the item goes on to the next step, as Make resumed' : directive === 'Ignore' ? 'then the item stops, as Make ignored the error' : `then "Stop and Error" fails the run, as Make "${directive}" did`;
+      const many = step.errorHandler.length > 1;
+      ctx.note(`On an error Make ran ${step.errorHandler.map((h) => `"${h.label}"`).join(', ')}: ${many ? 'they are' : 'it is'} on the error output of this node, disabled; ${then}. Check ${many ? 'them' : 'it'} and enable ${many ? 'them' : 'it'}.`, true);
       status = worst(status, 'review');
-      handlerReports.set(step.id, step.errorHandler.map((h) => ({
-        sourceId: h.id, sourceLabel: h.label, sourceKey: h.key, n8nNodes: [], status: 'manual', notes: [],
-        suggestion: `Make ran this when "${step.label}" failed. Not in the workflow: build it in n8n on the error output of "${work.wanted}" (its "On Error" set to "Continue (using error output)").`,
-      })));
     }
 
     let entryKey = stepKeys[0];
@@ -310,24 +380,14 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
 
     const outName = names[names.length - 1];
     for (const v of res.sets ?? []) vars.set(v, { name: outName, stepId: step.id });
-    if (res.credential) {
-      // The app node of the step (helpers such as a Filter or Code node may come after it) gets the credential
-      // without an id: n8n keeps it for picking, and `check` reports it until one is selected.
-      const at = Math.max(0, res.nodes.map((n) => !HELPER_TYPES.has(n.type)).lastIndexOf(true));
-      const node = planned[planned.length - res.nodes.length + at];
-      const { app, credentialType } = res.credential;
-      node.credentials = { ...node.credentials, [credentialType]: { name: `${app} account` } };
-      const k = `${app}|${credentialType}`;
-      const c = credentials.get(k) ?? { ...res.credential, nodes: [] };
-      c.nodes.push(names[at]);
-      credentials.set(k, c);
-    }
+    // A filter in front of the step is already in `planned` and `names`: pick the step's own nodes by key.
+    if (res.credential) addCredential(res, stepKeys.map((k) => planned.find((p) => p.key === k)!), names.slice(names.length - res.nodes.length));
     if (res.webhookPath) webhooks.push({ node: outName, path: res.webhookPath });
     for (const p of res.placeholders ?? []) placeholders.push({ node: outName, ...p });
 
     const report: StepReport = { sourceId: step.id, sourceLabel: step.label, sourceKey: step.key, n8nNodes: names, status, notes: sink.notes };
     if (res.suggestion) report.suggestion = res.suggestion;
-    outs.set(step.id, { step, name: outName, entry: entryKey, exit: exitKey, status, ref: res.ref, report });
+    outs.set(step.id, { step, name: outName, entry: entryKey, exit: exitKey, status, ref: res.ref, report, resume });
   }
 
   for (const e of g.edges) {
@@ -345,10 +405,12 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
       if (unfinished) ctx.note(`"${fname}" has no conditions in the export: it holds every item back until you replace its REPLACE-ME condition.`, true);
       planned.push({ ...n8nNode('filter', fname, conditionParameters(condition, d.ops, ctx, fname)), key: fkey, wanted: fname });
       edges.push({ from: from.exit, to: fkey }, { from: fkey, to: to.entry });
+      if (from.resume) edges.push({ from: from.resume, to: fkey });
       to.report.n8nNodes.unshift(fname);
       to.report.status = worst(to.report.status, sink.status);
     } else {
       edges.push({ from: from.exit, to: to.entry });
+      if (from.resume) edges.push({ from: from.resume, to: to.entry });
     }
   }
 
@@ -372,14 +434,15 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
   const steps = [...outs.values()].flatMap((o) => [o.report, ...(handlerReports.get(o.step.id) ?? [])]);
   const totals: Record<Status, number> = { converted: 0, review: 0, manual: 0 };
   for (const s of steps) totals[s.status]++;
-  const handlers = [...handlerReports.values()].flat().length;
-  const placed = totals.manual - handlers;
+  const handlerSteps = [...handlerReports.values()].flat();
+  const handlers = handlerSteps.length;
+  const placed = totals.manual - handlerSteps.filter((s) => s.status === 'manual').length;
 
   const nextSteps: string[] = [];
   if (credentials.size) nextSteps.push(`Connect credentials in n8n for: ${[...credentials.values()].map((c) => c.app).join(', ')}.`);
   if (webhooks.length) nextSteps.push(`Point the senders to the new webhook URL${webhooks.length > 1 ? 's' : ''}: ${webhooks.map((w) => `"${w.node}" (…/webhook/${w.path})`).join(', ')}.`);
   if (placed) nextSteps.push(`Finish ${placed} step${placed > 1 ? 's' : ''} by hand: ${placed > 1 ? 'they are' : 'it is'} disabled and marked ⚠, with a suggestion next to ${placed > 1 ? 'each' : 'it'}.`);
-  if (handlers) nextSteps.push(`Build ${handlers} Make error-handler step${handlers > 1 ? 's' : ''} on the error output, as the report suggests.`);
+  if (handlers) nextSteps.push(`Check ${handlers} Make error-handler step${handlers > 1 ? 's' : ''} on the error output${handlers > 1 ? 's' : ''} (disabled), finish ${handlers > 1 ? 'them' : 'it'} as the report suggests, then enable ${handlers > 1 ? 'them' : 'it'}.`);
   if (totals.review) nextSteps.push(`Check ${totals.review} step${totals.review > 1 ? 's' : ''} marked "review".`);
   if (placeholders.length) nextSteps.push(`Fill in ${placeholders.length} REPLACE-ME value${placeholders.length > 1 ? 's' : ''}.`);
   // The export has no time zone; n8n uses the workflow's, else the instance default.

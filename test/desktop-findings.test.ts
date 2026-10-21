@@ -9,7 +9,6 @@ import { convertMake, convertZapier, defaultOutputDir } from '../src/convert.ts'
 import { translateMakeExpr } from '../src/make/expr.ts';
 import { translateZapierExpr } from '../src/zapier/expr.ts';
 import { MAKE_OPS } from '../src/map/conditions.ts';
-import { renderMarkdown } from '../src/report/render.ts';
 import { oneMake, oneZap } from './helpers/one.ts';
 
 const m = (id: number, module: string, mapper: Record<string, unknown> = {}) => ({ id, module, version: 1, parameters: {}, mapper, metadata: {} });
@@ -230,36 +229,4 @@ test('problems the source itself marked reach the report', () => {
   const s2 = zap.report.steps.find((s) => s.sourceId === '2')!;
   assert.equal(s2.status, 'review');
   assert.match(s2.notes.join(' '), /Zapier marked this step/);
-});
-
-test('modules of a Make error handler are steps of the report, and the advice matches how the node handles errors', () => {
-  const handled = (directive: string) => convertMake({
-    name: 'H',
-    flow: [m(1, 'gateway:CustomWebHook'), { ...m(2, 'http:ActionSendData', { url: 'https://x.io', method: 'get' }), onerror: [
-      { id: 7, module: 'util:SetVariable2', version: 1, parameters: {}, mapper: { name: 'failed', value: 'yes' }, metadata: { designer: { name: 'Remember the failure' } } },
-      { id: 8, module: directive, version: 1, parameters: {}, mapper: {}, metadata: {} },
-    ] }],
-    metadata: { instant: true },
-  });
-  const resume = handled('builtin:Resume');
-  const h = resume.report.steps.find((s) => s.sourceId === '7');
-  assert.ok(h, 'the handler module is in the report');
-  assert.equal(h.status, 'manual');
-  assert.equal(h.sourceLabel, 'Remember the failure');
-  assert.match(h.suggestion ?? '', /error output/);
-  assert.equal(resume.workflow.nodes.find((n) => n.type === 'n8n-nodes-base.httpRequest')!.onError, 'continueRegularOutput');
-  const notes = resume.report.steps.find((s) => s.sourceId === '2')!.notes.join(' ');
-  assert.match(notes, /switch "On Error"/);
-  const ignore = handled('builtin:Ignore');
-  assert.equal(ignore.workflow.nodes.find((n) => n.type === 'n8n-nodes-base.httpRequest')!.onError, 'continueErrorOutput');
-  assert.doesNotMatch(ignore.report.steps.find((s) => s.sourceId === '2')!.notes.join(' '), /switch "On Error"/);
-});
-
-test('a report step with no n8n node shows a dash in the node column', () => {
-  const r = convertMake({
-    name: 'H',
-    flow: [m(1, 'gateway:CustomWebHook'), { ...m(2, 'http:ActionSendData', { url: 'https://x.io', method: 'get' }), onerror: [{ id: 7, module: 'util:SetVariable2', version: 1, parameters: {}, mapper: { name: 'f', value: '1' }, metadata: {} }] }],
-    metadata: { instant: true },
-  });
-  assert.match(renderMarkdown(r.report), /\| \d+ \| Set variable \(`util:SetVariable2`\) \| — \|/);
 });

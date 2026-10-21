@@ -120,7 +120,7 @@ function toStep(m: MakeModule): SourceStep {
     step.onError = directive ? String(directive.module) : 'builtin:Ignore';
     if (directive) step.onErrorParams = { ...(directive.parameters ?? {}), ...(directive.mapper ?? {}) };
     if (others.length) {
-      step.errorHandler = others.map((h) => ({ id: String(h.id), key: String(h.module), label: h.metadata?.designer?.name?.trim() || makeLabel(String(h.module)) }));
+      step.errorHandler = others.map(toStep);
     }
   }
   return step;

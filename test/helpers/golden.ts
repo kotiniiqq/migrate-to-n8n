@@ -6,7 +6,7 @@ import { dirname } from 'node:path';
 
 import type { ConversionResult } from '../../src/types.ts';
 
-/** Webhook paths end in a random part (see slugify): `/webhook/leads-1a2b3c4d` → `/webhook/leads-random`. */
+/** Webhook paths end in a hash (see slugify): `/webhook/leads-1a2b3c4d` → `/webhook/leads-random`. */
 export const stableText = (s: string) => s.replace(/((?:^|\/webhook\/)[a-z0-9-]*?)-[0-9a-f]{8}(?=$|[^0-9a-z-]|-[a-z]+(?:$|[^0-9a-z-]))/g, '$1-random');
 
 export function stable(r: ConversionResult): unknown {
