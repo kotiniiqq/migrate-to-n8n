@@ -72,7 +72,8 @@ test('the output folder from Claude Desktop expands ${HOME}, ${DOCUMENTS} and ~ 
   assert.equal(defaultOutputDir({ MIGRATE_OUTPUT_DIR: '${HOME}/Documents/migrate-to-n8n' }), join(home, 'Documents', 'migrate-to-n8n'));
   assert.equal(defaultOutputDir({ MIGRATE_OUTPUT_DIR: '${DOCUMENTS}/out' }), join(home, 'Documents', 'out'));
   assert.equal(defaultOutputDir({ MIGRATE_OUTPUT_DIR: '~/out' }), join(home, 'out'));
-  assert.equal(defaultOutputDir({ MIGRATE_OUTPUT_DIR: '~\\out' }), join(home, 'out'));
+  // A backslash separates folders only on Windows; elsewhere it is part of the name.
+  if (process.platform === 'win32') assert.equal(defaultOutputDir({ MIGRATE_OUTPUT_DIR: '~\\out' }), join(home, 'out'));
   assert.ok(isAbsolute(defaultOutputDir({ MIGRATE_OUTPUT_DIR: 'out' })), 'a relative folder is placed under the home folder, never the server working directory');
 });
 
