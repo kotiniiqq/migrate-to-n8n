@@ -115,8 +115,8 @@ register({
   build(ctx) {
     const groups = criteria(ctx.step.params);
     if (!groups) {
-      ctx.note('The filter has no conditions in the export; every item passes.');
-      return { nodes: [n8nNode('noOp', ctx.step.label, {})], status: 'converted' };
+      ctx.note('The filter has no conditions in the export (unfinished in Zapier?); every item passes: add the conditions in n8n.', true);
+      return { nodes: [n8nNode('noOp', ctx.step.label, {})], status: 'review' };
     }
     return { nodes: [n8nNode('filter', ctx.step.label, conditionParameters(groups, ZAPIER_OPS, ctx, ctx.step.label))], status: 'converted' };
   },
@@ -126,7 +126,10 @@ register({
   source: 'zapier', key: 'BranchingAPI:branch', label: 'No Operation (fan-out)',
   build(ctx) {
     ctx.note('Every path whose conditions match runs, as in Zapier.');
-    return { nodes: [n8nNode('noOp', ctx.step.label, {})], status: 'converted' };
+    const open = ctx.graph.edges.filter((e) => e.from === ctx.step.id && e.branch && !e.branch.condition && !e.branch.alwaysRun);
+    const names = [...new Set(open.map((e) => e.branch!.label ?? `path ${e.branch!.index + 1}`))];
+    if (names.length) ctx.note(`${names.join(', ')} ${names.length > 1 ? 'have' : 'has'} no conditions in the export, so ${names.length > 1 ? 'they always run' : 'it always runs'}: add the conditions in n8n if Zapier had them.`, true);
+    return { nodes: [n8nNode('noOp', ctx.step.label, {})], status: names.length ? 'review' : 'converted' };
   },
 });
 
@@ -174,8 +177,8 @@ const TRANSFORMS: Record<string, Transform> = {
   'string.extract_phone': (x) => `(String(${x}).match(/\\+?[\\d\\s().-]{7,}\\d/)?.[0] ?? '')`,
   'date.formatting': (x, p, ctx) => {
     const q = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-    const to = convertDateFormat(str(p.to_format) || 'YYYY-MM-DDTHH:mm:ssZ');
-    const fromF = p.from_format ? convertDateFormat(str(p.from_format)) : undefined;
+    const to = convertDateFormat(str(p.to_format) || 'YYYY-MM-DDTHH:mm:ssZ', 'zapier');
+    const fromF = p.from_format ? convertDateFormat(str(p.from_format), 'zapier') : undefined;
     for (const f of [to, fromF]) {
       if (f && !f.exact) ctx.note(`Date format token ${f.unsupported.join(', ')} has no exact Luxon equivalent; check the output.`, true);
     }
@@ -217,7 +220,9 @@ register({
       if (/^date\./.test(transform)) ctx.note('Zapier and n8n read unusual date texts differently; check the output once.');
       return { nodes: [setNode(ctx.step.label, [['output', `={{ ${js} }}`]])], status: 'converted' };
     }
-    const suggestion = `Formatter "${transform || ctx.step.action}" has no automatic translation: write it in this Code node (placed here, disabled; it receives the input as "input"), then enable it.`;
+    const suggestion = transform
+      ? `Formatter "${transform}" has no automatic translation: write it in this Code node (placed here, disabled; it receives the input as "input"), then enable it.`
+      : 'The export has no transform chosen for this Formatter step (unfinished in Zapier?): pick what it should do, write it in this Code node (placed here, disabled; it receives the input as "input"), then enable it.';
     const jsCode = [`// Zapier Formatter: ${transform || ctx.step.action}`, `const input = ${input};`, '// TODO: transform the input', 'return { json: { output: input } };'].join('\n');
     return {
       nodes: [n8nNode('code', ctx.step.label, { mode: 'runOnceForEachItem', language: 'javaScript', jsCode }, { disabled: true, note: suggestion })],
@@ -248,6 +253,13 @@ register({
       ].join('\n');
       const nodes = inputs.length ? [setNode(`${ctx.step.label} (inputs)`, inputs, false)] : [];
       nodes.push(n8nNode('code', ctx.step.label, { mode: 'runOnceForEachItem', language: 'pythonNative', pythonCode }, { disabled: true, note: suggestion }));
+      return { nodes, status: 'manual', suggestion };
+    }
+    if (!code.trim()) {
+      const suggestion = 'The export has no code for this step (unfinished in Zapier, or left out of the export): paste the code from Zapier into this Code node (inputData holds the input fields), then enable it.';
+      const jsCode = ['// Code by Zapier: the export had no code. Paste it here.', 'const inputData = $json;', 'let output = {};', 'return { json: output };'].join('\n');
+      const nodes = inputs.length ? [setNode(`${ctx.step.label} (inputs)`, inputs, false)] : [];
+      nodes.push(n8nNode('code', ctx.step.label, { mode: 'runOnceForEachItem', language: 'javaScript', jsCode }, { disabled: true, note: suggestion }));
       return { nodes, status: 'manual', suggestion };
     }
     const declares = /\b(let|const|var)\s+output\b/.test(code);

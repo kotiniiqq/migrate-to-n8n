@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-20",
+  "date": "2026-10-21",
   "make": {
     "files": 1432,
     "steps": 10064,
@@ -12,24 +12,24 @@
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.8088000000000193,
-      "max": 28.527500000000146
+      "p50": 0.7287999999998647,
+      "max": 8.261500000000012
     }
   },
   "zapier": {
     "files": 148,
     "steps": 910,
     "share": {
-      "converted": 12.6,
-      "review": 58.2,
-      "manual": 29.1
+      "converted": 7.3,
+      "review": 63.5,
+      "manual": 29.2
     },
-    "convertedOrReview": 70.9,
+    "convertedOrReview": 70.8,
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.22819700000000012,
-      "max": 5.00879999999961
+      "p50": 0.35502500000000053,
+      "max": 6.80160000000069
     }
   }
 }

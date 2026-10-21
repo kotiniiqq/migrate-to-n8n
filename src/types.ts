@@ -40,7 +40,8 @@ export interface SourceStep {
 export interface SourceEdge {
   from: string;
   to: string;
-  branch?: { index: number; label?: string; condition?: ConditionGroup };
+  /** `alwaysRun`: Zapier marked the path to run without conditions (isAlwaysRun). */
+  branch?: { index: number; label?: string; condition?: ConditionGroup; alwaysRun?: boolean };
 }
 
 export interface SourceGraph {

@@ -35,12 +35,12 @@ Formulas carry over too: `{{formatDate(1.date; "DD.MM.YYYY")}}` becomes
 `{{ DateTime.fromISO(String($('Webhook').item.json.body.date)).toFormat('dd.LL.yyyy') }}`.
 
 <!-- corpus:start -->
-Measured on 2026-10-20 on the public Make blueprints and Zapier exports found on GitHub:
+Measured on 2026-10-21 on the public Make blueprints and Zapier exports found on GitHub:
 
 | Source | Workflows | Steps | ✅ Converted | ⚠️ To review | 🛠 Manual | Broken outputs | Time (median) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Make | 1,432 | 10,064 | 41% | 39.1% | 19.9% | 0 | 0.8 ms |
-| Zapier | 148 | 910 | 12.6% | 58.2% | 29.1% | 0 | 0.2 ms |
+| Make | 1,432 | 10,064 | 41% | 39.1% | 19.9% | 0 | 0.7 ms |
+| Zapier | 148 | 910 | 7.3% | 63.5% | 29.2% | 0 | 0.4 ms |
 <!-- corpus:end -->
 
 "Broken outputs" counts workflows that n8n would reject. The test suite also imports a sample of these

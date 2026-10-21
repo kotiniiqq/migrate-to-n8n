@@ -19,7 +19,7 @@
           { "id": 22, "group": 2, "key": "1__amount", "value": "100", "match": "igreater", "action": "continue" },
           { "id": 23, "group": 2, "key": "{{=gives['1']['company']['domain']}}", "value": "corp", "match": "icontains", "action": "continue" }
         ] } },
-        "7": { "id": 7, "parent_id": 4, "root_id": 1, "type_of": "filter", "selected_api": "BranchingAPI", "action": "filter", "title": "Everyone else", "params": { "path_eval_index": 2 } },
+        "7": { "id": 7, "parent_id": 4, "root_id": 1, "type_of": "filter", "selected_api": "BranchingAPI", "action": "filter", "title": "Everyone else", "params": { "path_eval_index": 2, "isAlwaysRun": true } },
         "8": { "id": 8, "parent_id": 5, "root_id": 1, "type_of": "write", "selected_api": "WebHookCLIAPI@1.0.22", "action": "post", "title": "Send to the German CRM", "params": { "url": "https://crm.example.de/api/leads", "payload_type": "json", "wrap_in_array": "no", "unflatten": "yes", "data": { "name": "{{3__output}}", "email": "{{1__email}}", "tags": "{{1__tags__0}}" }, "headers": { "X-Api-Key": "abc123" } } },
         "9": { "id": 9, "parent_id": 6, "root_id": 1, "type_of": "write", "selected_api": "SlackCLIAPI@1.19.0", "action": "channel_message", "title": "Tell sales", "params": { "channel": "C0123", "text": "Big lead: {{3__output}} ({{1__amount}} EUR)", "as_bot": "yes" }, "authentication_id": 555 },
         "10": { "id": 10, "parent_id": 7, "root_id": 1, "type_of": "write", "selected_api": "DelayCLIAPI@1.0.0", "action": "delay_for", "title": "Wait a bit", "params": { "time_delay_for_value": "5", "time_delay_for_unit": "minutes" } },

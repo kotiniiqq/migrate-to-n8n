@@ -239,12 +239,14 @@ const jsStr = (s: string) => JSON.stringify(s);
 const jsSingle = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
 /** Moment-style date format (what Make uses) → Luxon format. */
-export function convertDateFormat(fmt: string): { fmt: string; exact: boolean; unsupported: string[] } {
+/** Zapier's offsets are the other way round: "Z" is +0000 and "ZZ" is +00:00 (as its own format list shows). */
+export function convertDateFormat(fmt: string, offsets: 'make' | 'zapier' = 'make'): { fmt: string; exact: boolean; unsupported: string[] } {
+  const zone: Array<[string, string]> = offsets === 'zapier' ? [['ZZ', 'ZZ'], ['Z', 'ZZZ']] : [['ZZ', 'ZZZ'], ['Z', 'ZZ']];
   const MAP: Array<[string, string | null]> = [
     ['YYYY', 'yyyy'], ['YY', 'yy'], ['MMMM', 'LLLL'], ['MMM', 'LLL'], ['MM', 'LL'], ['M', 'L'],
     ['Do', null], ['DDDD', 'ooo'], ['DD', 'dd'], ['D', 'd'], ['dddd', 'cccc'], ['ddd', 'ccc'], ['d', null],
     ['HH', 'HH'], ['H', 'H'], ['hh', 'hh'], ['h', 'h'], ['mm', 'mm'], ['m', 'm'], ['ss', 'ss'], ['s', 's'],
-    ['SSS', 'SSS'], ['A', 'a'], ['a', 'a'], ['X', 'X'], ['x', 'x'], ['ZZ', 'ZZZ'], ['Z', 'ZZ'], ['Q', 'q'], ['W', 'W'],
+    ['SSS', 'SSS'], ['A', 'a'], ['a', 'a'], ['X', 'X'], ['x', 'x'], ...zone, ['Q', 'q'], ['W', 'W'],
   ];
   let out = '';
   let literal = '';

@@ -66,7 +66,13 @@ export function zapierLabel(key: string): string {
   if (LABELS[key]) return LABELS[key];
   const [api, ...rest] = key.split(':');
   const app = APP_NAMES[api] ?? humanize(api.replace(/(V\d+)?(CLI)?API$/i, ''));
-  return `${app}: ${humanize(rest.join(':'))}`;
+  const action = rest.join(':');
+  // Newer Zapier actions (Code by Zapier among them) are stored as a UUID, not a name.
+  if (/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(action)) {
+    if (api === 'CodeCLIAPI') return /^01929fad-d3f6/i.test(action) ? 'Code: run Python' : 'Code: run JavaScript';
+    return app;
+  }
+  return `${app}: ${humanize(action)}`;
 }
 
 /** Zapier filter criteria → OR of AND groups. `match` is the operator, `action: stop` negates it. */
@@ -119,6 +125,7 @@ function graphOf(zap: Zap): SourceGraph {
         seen.add(String(path.id));
         const cond = criteria(path.params);
         if (cond) branch.condition = cond;
+        if ((path.params as { isAlwaysRun?: unknown } | null)?.isAlwaysRun === true) branch.alwaysRun = true;
         for (const first of (byParent.get(String(path.id)) ?? []).sort(order)) visit(first, { id: step.id, branch: { ...branch } });
       });
       return;
