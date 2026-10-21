@@ -13,7 +13,7 @@
         ],
         "parameters": {
           "httpMethod": "POST",
-          "path": "route-support-tickets",
+          "path": "route-support-tickets-random",
           "responseMode": "onReceived",
           "options": {}
         },
@@ -54,7 +54,7 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={\"subject\": \"{{ $('Webhook').item.json.body.subject }}\", \"customer\": \"{{ $('Webhook').item.json.body.email }}\"}",
+          "jsonBody": "={\"subject\": \"{{ JSON.stringify(String($('Webhook').item.json.body.subject ?? '')).slice(1, -1) }}\", \"customer\": \"{{ JSON.stringify(String($('Webhook').item.json.body.email ?? '')).slice(1, -1) }}\"}",
           "options": {}
         }
       },
@@ -84,11 +84,18 @@
           "select": "channel",
           "messageType": "text",
           "text": "=Urgent ticket: {{ $('Webhook').item.json.body.subject }} from {{ $('Webhook').item.json.body.email }}",
-          "otherOptions": {},
+          "otherOptions": {
+            "includeLinkToWorkflow": false
+          },
           "channelId": {
             "__rl": true,
             "mode": "id",
             "value": "C0123ABCD"
+          }
+        },
+        "credentials": {
+          "slackApi": {
+            "name": "Slack account"
           }
         }
       },
@@ -109,7 +116,14 @@
           "subject": "=Ticket: {{ $('Webhook').item.json.body.subject }}",
           "emailFormat": "html",
           "html": "=<p>{{ $('Webhook').item.json.body.body }}</p>",
-          "options": {}
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "credentials": {
+          "smtp": {
+            "name": "SMTP account"
+          }
         }
       },
       {
@@ -181,7 +195,7 @@
             "conditions": [
               {
                 "id": "id-12",
-                "leftValue": "={{ (String($('Webhook').item.json.body.category ?? '') === String(\"tech\" ?? '')) || (String(String($('Webhook').item.json.body.subject).toLowerCase() ?? '').toLowerCase().includes(String(\"error\" ?? '').toLowerCase())) }}",
+                "leftValue": "={{ (String($('Webhook').item.json.body.category ?? '') === String(\"tech\" ?? '')) || (String(String($('Webhook').item.json.body.subject ?? '').toLowerCase() ?? '').toLowerCase().includes(String(\"error\" ?? '').toLowerCase())) }}",
                 "rightValue": "",
                 "operator": {
                   "type": "boolean",
@@ -427,7 +441,7 @@
     "webhooks": [
       {
         "node": "Webhook",
-        "path": "route-support-tickets"
+        "path": "route-support-tickets-random"
       }
     ],
     "placeholders": [
@@ -439,7 +453,7 @@
     ],
     "nextSteps": [
       "Connect credentials in n8n for: Slack, SMTP.",
-      "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/route-support-tickets).",
+      "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/route-support-tickets-random).",
       "Fill in 1 REPLACE-ME value.",
       "Run the workflow once with test data, then activate (publish) it."
     ]

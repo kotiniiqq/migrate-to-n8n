@@ -5,9 +5,10 @@
 ## Next steps
 
 1. Connect credentials in n8n for: Google Sheets.
-2. Point the senders to the new webhook URL: "Form submitted" (…/webhook/leads-from-the-website-form).
+2. Point the senders to the new webhook URL: "Form submitted" (…/webhook/leads-from-the-website-form-random).
 3. Check 2 steps marked "review".
-4. Run the workflow once with test data, then activate (publish) it.
+4. Set the time zone in the workflow settings to the one your Make account used: dates, times and schedules here follow it (without it n8n uses the instance default, often America/New_York).
+5. Run the workflow once with test data, then activate (publish) it.
 
 ## Credentials to reconnect
 
@@ -21,7 +22,7 @@ Credentials never leave Make or Zapier: create them in n8n and pick them in thes
 
 The URL is your n8n address followed by the path below; n8n shows both test and production URLs in the node.
 
-- **Form submitted**: `/webhook/leads-from-the-website-form`
+- **Form submitted**: `/webhook/leads-from-the-website-form-random`
 
 ## Steps
 

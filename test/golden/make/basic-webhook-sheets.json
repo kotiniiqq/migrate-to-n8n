@@ -13,7 +13,7 @@
         ],
         "parameters": {
           "httpMethod": "POST",
-          "path": "leads-from-the-website-form",
+          "path": "leads-from-the-website-form-random",
           "responseMode": "responseNode",
           "options": {}
         },
@@ -79,6 +79,11 @@
           },
           "options": {
             "cellFormat": "USER_ENTERED"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "name": "Google Sheets account"
           }
         }
       },
@@ -216,14 +221,15 @@
     "webhooks": [
       {
         "node": "Form submitted",
-        "path": "leads-from-the-website-form"
+        "path": "leads-from-the-website-form-random"
       }
     ],
     "placeholders": [],
     "nextSteps": [
       "Connect credentials in n8n for: Google Sheets.",
-      "Point the senders to the new webhook URL: \"Form submitted\" (…/webhook/leads-from-the-website-form).",
+      "Point the senders to the new webhook URL: \"Form submitted\" (…/webhook/leads-from-the-website-form-random).",
       "Check 2 steps marked \"review\".",
+      "Set the time zone in the workflow settings to the one your Make account used: dates, times and schedules here follow it (without it n8n uses the instance default, often America/New_York).",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

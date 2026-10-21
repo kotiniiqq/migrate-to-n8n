@@ -13,7 +13,7 @@
         ],
         "parameters": {
           "httpMethod": "POST",
-          "path": "order-sync-with-error-handling",
+          "path": "order-sync-with-error-handling-random",
           "responseMode": "onReceived",
           "options": {}
         },
@@ -68,7 +68,9 @@
           "select": "channel",
           "messageType": "text",
           "text": "=Big order {{ $('HTTP request').item.json.id }}: {{ $('HTTP request').item.json.total }}",
-          "otherOptions": {},
+          "otherOptions": {
+            "includeLinkToWorkflow": false
+          },
           "channelId": {
             "__rl": true,
             "mode": "id",
@@ -121,6 +123,11 @@
           },
           "looseTypeValidation": true,
           "options": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "name": "Slack account"
+          }
         }
       },
       {
@@ -157,6 +164,11 @@
             "schema": []
           },
           "options": {}
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "name": "Google Sheets account"
+          }
         },
         "onError": "continueRegularOutput"
       }
@@ -218,7 +230,7 @@
     "totals": {
       "converted": 2,
       "review": 2,
-      "manual": 0
+      "manual": 1
     },
     "steps": [
       {
@@ -257,7 +269,7 @@
         ],
         "status": "review",
         "notes": [
-          "Make stored the failed run and retried it later; n8n retries this step 4 times, 5 s apart. For longer gaps use an error workflow."
+          "Make retried the stored run 3 times, 15 min apart; n8n makes 3 retries (4 attempts), 5 s apart. For longer gaps use an error workflow."
         ]
       },
       {
@@ -271,8 +283,17 @@
         "notes": [
           "Make wrote these columns by position (A, B, C…); n8n writes by column header: open the node, pick the sheet and map each value to its header.",
           "Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.",
-          "On an error Make ran: \"Email: Send Email\". In n8n set this node's \"On Error\" to \"Continue (using error output)\" and connect the same steps to the error output."
+          "On an error Make ran: \"Email: Send Email\". They are not in the workflow yet: switch \"On Error\" of this node to \"Continue (using error output)\" in n8n and add them on the error output, then on to the next step, as Make resumed."
         ]
+      },
+      {
+        "sourceId": "22",
+        "sourceLabel": "Email: Send Email",
+        "sourceKey": "email:ActionSendEmail",
+        "n8nNodes": [],
+        "status": "manual",
+        "notes": [],
+        "suggestion": "Make ran this when \"Google Sheets: Update Row\" failed. Not in the workflow: build it in n8n on the error output of \"Google Sheets: Update Row\" (its \"On Error\" set to \"Continue (using error output)\")."
       }
     ],
     "credentials": [
@@ -280,7 +301,7 @@
         "app": "Slack",
         "credentialType": "slackApi",
         "nodes": [
-          "Slack: Create Message"
+          "Has an order"
         ]
       },
       {
@@ -294,13 +315,14 @@
     "webhooks": [
       {
         "node": "Webhook",
-        "path": "order-sync-with-error-handling"
+        "path": "order-sync-with-error-handling-random"
       }
     ],
     "placeholders": [],
     "nextSteps": [
       "Connect credentials in n8n for: Slack, Google Sheets.",
-      "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/order-sync-with-error-handling).",
+      "Point the senders to the new webhook URL: \"Webhook\" (…/webhook/order-sync-with-error-handling-random).",
+      "Build 1 Make error-handler step on the error output, as the report suggests.",
       "Check 2 steps marked \"review\".",
       "Run the workflow once with test data, then activate (publish) it."
     ]

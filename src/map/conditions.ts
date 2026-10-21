@@ -22,6 +22,8 @@ const s = (l: string) => `String(${l} ?? '')`;
 const lc = (l: string) => `String(${l} ?? '').toLowerCase()`;
 const num = (l: string) => `Number(${l})`;
 const date = (l: string) => `DateTime.fromISO(String(${l})).toMillis()`;
+/** Yes/no as Make and n8n's loose condition rows read it: the texts "true", "1" and "yes" are yes, "false" is no. */
+const bool = (l: string) => `((v) => typeof v === 'string' ? ['true', '1', 'yes'].includes(v.trim().toLowerCase()) : Boolean(v))(${l})`;
 const exists = (l: string) => `(${l} !== undefined && ${l} !== null && ${l} !== '')`;
 
 const text = (operation: string, js: (a: string, b: string) => string, ci = false): OpSpec => ({ type: 'string', operation, ci, js });
@@ -60,8 +62,8 @@ export const MAKE_OPS: Record<string, OpSpec> = {
   'date:less': { type: 'dateTime', operation: 'before', js: (l, r) => `${date(l)} < ${date(r)}` },
   'date:greaterorequal': { type: 'dateTime', operation: 'afterOrEquals', js: (l, r) => `${date(l)} >= ${date(r)}` },
   'date:lessorequal': { type: 'dateTime', operation: 'beforeOrEquals', js: (l, r) => `${date(l)} <= ${date(r)}` },
-  'boolean:equal': { type: 'boolean', operation: 'equals', js: (l, r) => `Boolean(${l}) === (String(${r}) === 'true')` },
-  'boolean:notequal': { type: 'boolean', operation: 'notEquals', js: (l, r) => `Boolean(${l}) !== (String(${r}) === 'true')` },
+  'boolean:equal': { type: 'boolean', operation: 'equals', js: (l, r) => `${bool(l)} === ${bool(r)}` },
+  'boolean:notequal': { type: 'boolean', operation: 'notEquals', js: (l, r) => `${bool(l)} !== ${bool(r)}` },
   exist: { type: 'string', operation: 'exists', single: true, js: (l) => exists(l) },
   notexist: { type: 'string', operation: 'notExists', single: true, js: (l) => `!${exists(l)}` },
   'array:contain': { type: 'array', operation: 'contains', js: (l, r) => `(${l} ?? []).includes(${r})` },
@@ -106,6 +108,10 @@ export function conditionParameters(groups: ConditionGroup, ops: Record<string, 
   const conditions = [{ id: randomUUID(), leftValue: `={{ ${js} }}`, rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }];
   return { conditions: { options: { ...options, caseSensitive: true }, conditions, combinator: 'and' }, looseTypeValidation: true, options: {} };
 }
+
+/** A filter left unfinished in the source: one REPLACE-ME condition that never matches, so nothing passes
+ *  unchecked and `check` lists it until the real conditions are set. */
+export const UNFINISHED_ZAPIER: ConditionGroup = [[{ left: 'REPLACE-ME', op: 'exact:continue', right: '' }]];
 
 // ---------- Zapier ----------
 

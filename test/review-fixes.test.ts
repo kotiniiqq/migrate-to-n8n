@@ -43,10 +43,10 @@ test('3: Zapier date formatting with an input format quotes literal text and fla
   assert.equal(r.step.status, 'review');
 });
 
-test('4: a Sheets search limit becomes an n8n Limit node', () => {
+test('4: a Sheets search limit keeps that many rows per incoming item (see review-fixes-2 for the run)', () => {
   const r = oneMake('google-sheets:filterRows', { spreadsheetId: '1A', sheetId: 'S', limit: '1' });
-  assert.equal(r.node.type, 'n8n-nodes-base.limit');
-  assert.equal(p(r.node).maxItems, 1);
+  assert.equal(r.node.type, 'n8n-nodes-base.code');
+  assert.match(String(p(r.node).jsCode), /const max = 1;/);
 });
 
 test('5: an aggregator after a polling trigger is flagged: n8n collects every item of the run', () => {

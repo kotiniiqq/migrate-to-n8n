@@ -11,6 +11,7 @@ interface ZapNode {
   params?: Record<string, unknown> | null;
   authentication_id?: number | string | null;
   paused?: boolean;
+  meta?: { $editor?: { has_automatic_issues?: boolean } } | null;
 }
 interface Zap {
   id?: number | string;
@@ -95,6 +96,7 @@ function toStep(n: ZapNode): SourceStep {
   const key = `${app}:${action}`;
   const step: SourceStep = { id: String(n.id), key, app, action, label: n.title?.trim() || zapierLabel(key), params: { ...(n.params ?? {}) } };
   if (n.authentication_id !== null && n.authentication_id !== undefined) step.connectionRef = String(n.authentication_id);
+  if (n.meta?.$editor?.has_automatic_issues === true) step.flagged = [{ text: 'Zapier marked this step as having problems (unfinished or failing in Zapier): check its settings.', serious: true }];
   return step;
 }
 

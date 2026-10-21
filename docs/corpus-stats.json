@@ -2,34 +2,34 @@
   "date": "2026-10-21",
   "make": {
     "files": 1432,
-    "steps": 10064,
+    "steps": 10129,
     "share": {
-      "converted": 41,
-      "review": 39.1,
-      "manual": 19.9
+      "converted": 42,
+      "review": 37.6,
+      "manual": 20.4
     },
-    "convertedOrReview": 80.1,
+    "convertedOrReview": 79.6,
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.7287999999998647,
-      "max": 8.261500000000012
+      "p50": 0.7445999999999913,
+      "max": 8.904899999999998
     }
   },
   "zapier": {
     "files": 148,
     "steps": 910,
     "share": {
-      "converted": 7.3,
-      "review": 63.5,
+      "converted": 7,
+      "review": 63.7,
       "manual": 29.2
     },
     "convertedOrReview": 70.8,
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.35502500000000053,
-      "max": 6.80160000000069
+      "p50": 0.2226359999999977,
+      "max": 6.751499999999851
     }
   }
 }

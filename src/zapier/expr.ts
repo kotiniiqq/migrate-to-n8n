@@ -17,13 +17,15 @@ type Seg = { k: 'prop'; name: string } | { k: 'index'; n: number } | { k: 'all' 
 const IDENT = /^[A-Za-z_$][\w$]*$/;
 const prop = (name: string) => (IDENT.test(name) ? `.${name}` : `['${name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}']`);
 
+/** Zapier gives an empty value when a field along the way is missing, so every step after the first is optional. */
 function path(base: string, segs: Seg[]): string {
   let js = base;
   for (let i = 0; i < segs.length; i++) {
     const s = segs[i];
-    if (s.k === 'prop') js += prop(s.name);
-    else if (s.k === 'index') js += `[${s.n}]`;
-    else return `${js}.map(e => ${path('e', segs.slice(i + 1))})`;
+    const step = (plain: string) => (i ? `?.${plain.replace(/^\./, '')}` : plain);
+    if (s.k === 'prop') js += step(prop(s.name));
+    else if (s.k === 'index') js += step(`[${s.n}]`);
+    else return `${js}${step('.map')}(e => ${path('e', segs.slice(i + 1))})`;
   }
   return js;
 }

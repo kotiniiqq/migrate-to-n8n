@@ -1,6 +1,8 @@
 /** Make app modules beyond Google: AI, messaging, Airtable, data stores, Apify, Perplexity, "Make an API call". */
 import { findApp } from '../apps.ts';
 import { n8nNode, register, type MapCtx, type MapOutput } from '../registry.ts';
+import { jsonBodyText } from '../../make/expr.ts';
+import { nodeRef } from '../../util/names.ts';
 import { appRef, httpMethod, rl, str, urlWith } from '../shared.ts';
 
 const num = (v: unknown): number | undefined => (v !== '' && v !== null && v !== undefined && Number.isFinite(Number(v)) ? Number(v) : undefined);
@@ -9,6 +11,17 @@ const joinList = (v: unknown) => (Array.isArray(v) ? v.filter((x) => x !== '' &&
 const AI_NOTE = 'n8n returns the answer in its own output shape: open the node once after a test run and adjust the fields later steps read.';
 
 // ---------- AI ----------
+
+/** n8n's OpenAI node (simplified) answers {output: [{content: [{text}]}]}. Make had the text as `result` (parsed when
+ *  JSON was asked for) and in `choices[].message.content`; other fields keep the generic check note. */
+function openAiRef(json: boolean): NonNullable<MapOutput['ref']> {
+  return (out, first, path = []) => {
+    const text = `${nodeRef(out)}.item.json.output[0].content[0].text`;
+    if (first === 'result') return { base: json ? `JSON.parse(${text})` : text, drop: 1 };
+    if (/^choices\.\[1?\]\.(message\.content|text)$/.test(path.join('.'))) return { base: text, drop: path.length };
+    return appRef('OpenAI')(out, first, path);
+  };
+}
 
 function chatMessages(v: unknown, ctx: MapCtx) {
   return list<{ role?: unknown; content?: unknown }>(v).map((m) => {
@@ -30,12 +43,11 @@ register({
     if (num(p.max_tokens) !== undefined) options.maxTokens = num(p.max_tokens);
     if (num(p.temperature) !== undefined) options.temperature = num(p.temperature);
     if (num(p.top_p) !== undefined && num(p.top_p) !== 1) options.topP = num(p.top_p);
-    if (p.response_format === 'json_object') ctx.note('Make asked for a JSON answer; set Options → Text Format → JSON Object in n8n if later steps parse it.', true);
+    if (p.response_format === 'json_object') ctx.note('Make asked for a JSON answer and later steps read it parsed: set Options → Text Format → JSON Object in n8n so the answer is always JSON.', true);
     if (num(p.n_completions) !== undefined && num(p.n_completions)! > 1) ctx.note('Make asked for several answers; n8n returns one.', true);
-    ctx.note(AI_NOTE);
     return {
       nodes: [n8nNode('openAi', ctx.step.label, { resource: 'text', operation: 'response', modelId: rl('id', ctx.expr(str(p.model) || 'gpt-4o-mini')), responses: { values: chatMessages(p.messages, ctx) }, simplify: true, options })],
-      status: 'converted', credential: { app: 'OpenAI', credentialType: 'openAiApi' }, ref: appRef('OpenAI'),
+      status: 'converted', credential: { app: 'OpenAI', credentialType: 'openAiApi' }, ref: openAiRef(p.response_format === 'json_object'),
     };
   },
 });
@@ -47,7 +59,7 @@ register({
     ctx.note(`Make talked to the OpenAI Assistant ${str(p.assistantId)}; n8n sends the message to a model: copy the assistant's instructions into Options → Instructions and pick its model.`, true);
     return {
       nodes: [n8nNode('openAi', ctx.step.label, { resource: 'text', operation: 'response', modelId: rl('id', 'gpt-4o-mini'), responses: { values: [{ type: 'text', role: 'user', content: ctx.expr(str(p.message)) }] }, simplify: true, options: {} })],
-      status: 'review', credential: { app: 'OpenAI', credentialType: 'openAiApi' }, ref: appRef('OpenAI'),
+      status: 'review', credential: { app: 'OpenAI', credentialType: 'openAiApi' }, ref: openAiRef(false),
     };
   },
 });
@@ -333,7 +345,7 @@ register({
     if (headers.length) Object.assign(params, { sendHeaders: true, headerParameters: { parameters: headers } });
     const qs = list<{ key?: unknown; name?: unknown; value?: unknown }>(p.qs).filter((h) => str(h.key ?? h.name)).map((h) => ({ name: str(h.key ?? h.name), value: ctx.expr(str(h.value)) }));
     if (qs.length) Object.assign(params, { sendQuery: true, queryParameters: { parameters: qs } });
-    if (str(p.body)) Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(str(p.body)) });
+    if (str(p.body)) Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(jsonBodyText(str(p.body))) });
     params.options = {};
     const app = findApp('make', ctx.step.app, false)?.displayName ?? ctx.step.app;
     if (!known) {

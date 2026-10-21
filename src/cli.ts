@@ -53,6 +53,9 @@ function detect(text: string): 'make' | 'zapier' {
     throw new InputError('The file is not JSON: it is neither a Make blueprint nor a Zapier export.');
   }
   const o = (Array.isArray(v) && v.length === 1 ? v[0] : v) as Record<string, unknown>;
+  // Make's API answers {response: {blueprint}}, which parseMake accepts too.
+  const resp = o && typeof o === 'object' ? (o.response as Record<string, unknown> | undefined) : undefined;
+  if (resp && typeof resp === 'object' && resp.blueprint && typeof resp.blueprint === 'object') return 'make';
   if (o && typeof o === 'object' && (Array.isArray(o.flow) || (o.blueprint && typeof o.blueprint === 'object'))) return 'make';
   if (Array.isArray(v) || (o && typeof o === 'object' && (Array.isArray(o.zaps) || 'nodes' in o))) return 'zapier';
   throw new InputError('The file is neither a Make blueprint nor a Zapier export.');

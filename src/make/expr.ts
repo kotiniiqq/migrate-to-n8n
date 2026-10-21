@@ -10,7 +10,7 @@ export interface MakeExprCtx {
   refName(moduleId: string): string | undefined;
   /** How a step exposes its output, when it is not `$('Name').item.json.<path>`: another base expression, and
    *  how many leading path fields to drop (an HTTP response's `data`). May throw to refuse a field. */
-  refBase?(moduleId: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
+  refBase?(moduleId: string, firstField?: string, path?: string[]): { base: string; drop: number; note?: string } | undefined;
 }
 
 export interface Translated {
@@ -289,14 +289,17 @@ class Printer {
   }
 
   path(base: string, segs: Seg[]): string {
+    // Make gives an empty value when a field along the way is missing, so every step after the first is optional.
     let js = base;
     for (let i = 0; i < segs.length; i++) {
       const s = segs[i];
-      if (s.k === 'prop') js += prop(s.name);
+      // `?.x`, `?.['x']`, `?.[0]`, `?.map`: the optional form of each step (none before the first)
+      const step = (plain: string) => (i ? `?.${plain.replace(/^\./, '')}` : plain);
+      if (s.k === 'prop') js += step(prop(s.name));
       else if (s.k === 'index') {
         const e = s.expr;
-        js += e.k === 'num' && /^\d+$/.test(e.v) ? `[${Number(e.v) - 1}]` : `[(${this.p(e).js}) - 1]`;
-      } else return `${js}.map(e => ${this.path('e', segs.slice(i + 1))})`;
+        js += step(e.k === 'num' && /^\d+$/.test(e.v) ? `[${Number(e.v) - 1}]` : `[(${this.p(e).js}) - 1]`);
+      } else return `${js}${step('.map')}(e => ${this.path('e', segs.slice(i + 1))})`;
     }
     return js;
   }
@@ -311,6 +314,10 @@ class Printer {
   call(name: string, a: Node[]): Out {
     const P = (n: Node) => this.p(n);
     const js = (n: Node) => this.p(n).js;
+    // An argument that gets `.length`, `[0]` and the like is wrapped when it is an operator, so they apply to all of it.
+    const obj = (n: Node) => (n.k === 'bin' || n.k === 'un' ? `(${js(n)})` : js(n));
+    // A list argument that is missing counts as an empty list, as in Make.
+    const list = (n: Node) => (n.k === 'ref' || n.k === 'var' ? `(${js(n)} ?? [])` : obj(n));
     const need = (min: number, max = min) => {
       if (a.length < min || a.length > max) throw new Unsupported(`${name}() with ${a.length} arguments`);
     };
@@ -331,11 +338,11 @@ class Printer {
       }
       case 'parseDate': {
         need(1, 3);
-        if (!a[1]) return dt(`DateTime.fromISO(String(${js(a[0])}))`);
+        if (!a[1]) return dt(`DateTime.fromISO(String(${js(a[0])} ?? ''))`);
         const f = convertDateFormat(this.lit(a[1], 'the date format'));
         if (!f.exact) this.notes.push(`Date format token ${f.unsupported.join(', ')} has no exact Luxon equivalent; check the output.`);
         const zone = a[2] ? `, { zone: ${jsSingle(this.lit(a[2], 'the time zone'))} }` : '';
-        return dt(`DateTime.fromFormat(String(${js(a[0])}), ${jsSingle(f.fmt)}${zone})`);
+        return dt(`DateTime.fromFormat(String(${js(a[0])} ?? ''), ${jsSingle(f.fmt)}${zone})`);
       }
       case 'if': need(3); return any(`(${js(a[0])} ? ${js(a[1])} : ${js(a[2])})`);
       // Make counts only null, "" and an empty list as empty (0 and false are values).
@@ -351,25 +358,27 @@ class Printer {
         for (let i = rest.length - (rest.length % 2) - 2; i >= 0; i -= 2) out = `(${subject} == ${js(rest[i])} ? ${js(rest[i + 1])} : ${out})`;
         return any(out);
       }
-      case 'length': need(1); return any(`${js(a[0])}.length`);
-      case 'lower': need(1); return any(`String(${js(a[0])}).toLowerCase()`);
-      case 'upper': need(1); return any(`String(${js(a[0])}).toUpperCase()`);
-      case 'trim': need(1); return any(`String(${js(a[0])}).trim()`);
-      case 'capitalize': need(1); return any(`(s => s.charAt(0).toUpperCase() + s.slice(1))(String(${js(a[0])}))`);
+      // inserted by jsonBodyText(): a value inside a JSON string, escaped so the body stays valid JSON
+      case '__jsonText': need(1); return any(`JSON.stringify(String(${js(a[0])} ?? '')).slice(1, -1)`);
+      case 'length': need(1); return any(`${list(a[0])}.length`);
+      case 'lower': need(1); return any(`String(${js(a[0])} ?? '').toLowerCase()`);
+      case 'upper': need(1); return any(`String(${js(a[0])} ?? '').toUpperCase()`);
+      case 'trim': need(1); return any(`String(${js(a[0])} ?? '').trim()`);
+      case 'capitalize': need(1); return any(`(s => s.charAt(0).toUpperCase() + s.slice(1))(String(${js(a[0])} ?? ''))`);
       case 'replace': {
         need(3);
-        if (a[1].k === 'regex') return any(`String(${js(a[0])}).replace(${a[1].v}, ${js(a[2])})`);
-        return any(`String(${js(a[0])}).replaceAll(${js(a[1])}, ${js(a[2])})`);
+        if (a[1].k === 'regex') return any(`String(${js(a[0])} ?? '').replace(${a[1].v}, ${js(a[2])})`);
+        return any(`String(${js(a[0])} ?? '').replaceAll(${js(a[1])}, ${js(a[2])})`);
       }
       case 'get': {
         need(2);
-        if (a[1].k === 'num' && /^\d+$/.test(a[1].v)) return any(`${js(a[0])}?.[${Number(a[1].v) - 1}]`);
-        if (a[1].k === 'str') return any(js(a[0]) + a[1].v.split('.').map((k) => (/^\d+$/.test(k) ? `?.[${Number(k) - 1}]` : `?.${IDENT.test(k) ? k : `[${jsSingle(k)}]`}`)).join(''));
+        if (a[1].k === 'num' && /^\d+$/.test(a[1].v)) return any(`${obj(a[0])}?.[${Number(a[1].v) - 1}]`);
+        if (a[1].k === 'str') return any(obj(a[0]) + a[1].v.split('.').map((k) => (/^\d+$/.test(k) ? `?.[${Number(k) - 1}]` : `?.${IDENT.test(k) ? k : `[${jsSingle(k)}]`}`)).join(''));
         throw new Unsupported('get() with a computed path');
       }
-      case 'join': need(2); return any(`${js(a[0])}.join(${js(a[1])})`);
-      case 'split': need(2); return any(`String(${js(a[0])}).split(${js(a[1])})`);
-      case 'toString': need(1); return any(`String(${js(a[0])})`);
+      case 'join': need(2); return any(`${list(a[0])}.join(${js(a[1])})`);
+      case 'split': need(2); return any(`String(${js(a[0])} ?? '').split(${js(a[1])})`);
+      case 'toString': need(1); return any(`String(${js(a[0])} ?? '')`);
       case 'parseNumber': {
         need(1, 2);
         if (!a[1]) return any(`Number(${js(a[0])})`);
@@ -392,7 +401,7 @@ class Printer {
         return any(a.length === 1 ? `Math.${name}(...${js(a[0])})` : `Math.${name}(${a.map(js).join(', ')})`);
       case 'sum':
         if (!a.length) need(1);
-        return any(a.length === 1 ? `${js(a[0])}.reduce((s, v) => s + Number(v), 0)` : `(${a.map((n) => `Number(${js(n)})`).join(' + ')})`);
+        return any(a.length === 1 ? `${list(a[0])}.reduce((s, v) => s + Number(v), 0)` : `(${a.map((n) => `Number(${js(n)})`).join(' + ')})`);
       case 'average':
         if (!a.length) need(1);
         return any(a.length === 1
@@ -400,33 +409,33 @@ class Printer {
           : `((${a.map((n) => `Number(${js(n)})`).join(' + ')}) / ${a.length})`);
       case 'map': {
         need(2, 4);
-        if (a[1].k === 'lambda') { need(2); return any(`${js(a[0])}.map(${js(a[1])})`); }
+        if (a[1].k === 'lambda') { need(2); return any(`${list(a[0])}.map(${js(a[1])})`); }
         const key = this.lit(a[1], 'the key');
         const pick = `e => e?.${IDENT.test(key) ? key : `[${jsSingle(key)}]`}`;
-        if (a.length === 2) return any(`${js(a[0])}.map(${pick})`);
+        if (a.length === 2) return any(`${list(a[0])}.map(${pick})`);
         if (a.length === 3) need(2, 2);
         const fk = this.lit(a[2], 'the filter key');
         const fv = this.lit(a[3], 'the filter values').split(',').map((s) => s.trim());
-        return any(`${js(a[0])}.filter(e => ${JSON.stringify(fv)}.includes(String(e?.[${jsSingle(fk)}]))).map(${pick})`);
+        return any(`${list(a[0])}.filter(e => ${JSON.stringify(fv)}.includes(String(e?.[${jsSingle(fk)}]))).map(${pick})`);
       }
-      case 'contains': need(2); return any(`${js(a[0])}.includes(${js(a[1])})`);
-      case 'substring': need(2, 3); return any(`String(${js(a[0])}).substring(${a.slice(1).map(js).join(', ')})`);
-      case 'indexOf': need(2, 3); return any(`String(${js(a[0])}).indexOf(${a.slice(1).map(js).join(', ')})`);
-      case 'first': need(1); return any(`${js(a[0])}[0]`);
-      case 'last': need(1); return any(`${js(a[0])}.at(-1)`);
-      case 'slice': need(2, 3); return any(`${js(a[0])}.slice(${a.slice(1).map(js).join(', ')})`);
+      case 'contains': need(2); return any(`${list(a[0])}.includes(${js(a[1])})`);
+      case 'substring': need(2, 3); return any(`String(${js(a[0])} ?? '').substring(${a.slice(1).map(js).join(', ')})`);
+      case 'indexOf': need(2, 3); return any(`String(${js(a[0])} ?? '').indexOf(${a.slice(1).map(js).join(', ')})`);
+      case 'first': need(1); return any(`${list(a[0])}[0]`);
+      case 'last': need(1); return any(`${list(a[0])}.at(-1)`);
+      case 'slice': need(2, 3); return any(`${list(a[0])}.slice(${a.slice(1).map(js).join(', ')})`);
       case 'merge': if (a.length < 2) need(2); return any(`[${a.map((n) => `...${js(n)}`).join(', ')}]`);
       case 'add': if (a.length < 2) need(2); return any(`[...${js(a[0])}, ${a.slice(1).map(js).join(', ')}]`);
       case 'keys': need(1); return any(`Object.keys(${js(a[0])})`);
       case 'reverse': need(1); return any(`[...${js(a[0])}].reverse()`);
       case 'sort': need(1); return any(`[...${js(a[0])}].sort()`);
-      case 'flatten': need(1); return any(`${js(a[0])}.flat()`);
+      case 'flatten': need(1); return any(`${list(a[0])}.flat()`);
       case 'distinct': case 'deduplicate': need(1); return any(`[...new Set(${js(a[0])})]`);
       case 'encodeURL': need(1); return any(`encodeURIComponent(${js(a[0])})`);
       case 'decodeURL': need(1); return any(`decodeURIComponent(${js(a[0])})`);
-      case 'base64': need(1); return any(`String(${js(a[0])}).base64Encode()`);
-      case 'md5': case 'sha1': case 'sha256': case 'sha512': need(1); return any(`String(${js(a[0])}).hash('${name}')`);
-      case 'stripHTML': need(1); return any(`String(${js(a[0])}).removeTags()`);
+      case 'base64': need(1); return any(`String(${js(a[0])} ?? '').base64Encode()`);
+      case 'md5': case 'sha1': case 'sha256': case 'sha512': need(1); return any(`String(${js(a[0])} ?? '').hash('${name}')`);
+      case 'stripHTML': need(1); return any(`String(${js(a[0])} ?? '').removeTags()`);
       case 'not': need(1); return any(`!(${js(a[0])})`);
       default:
         throw new Unsupported(`function ${name}() has no automatic translation`);
@@ -467,7 +476,8 @@ class Printer {
         const first = n.path[0]?.k === 'prop' ? n.path[0].name : undefined;
         let custom: { base: string; drop: number; note?: string } | undefined;
         try {
-          custom = this.ctx.refBase?.(n.id, first);
+          const labels = n.path.map((s) => (s.k === 'prop' ? s.name : s.k === 'all' ? '[]' : s.expr.k === 'num' ? `[${s.expr.v}]` : '[?]'));
+          custom = this.ctx.refBase?.(n.id, first, labels);
         } catch (e) {
           throw new Unsupported((e as Error).message);
         }
@@ -490,7 +500,9 @@ class Printer {
       case 'bin': {
         const l = this.p(n.l).js;
         const r = this.p(n.r).js;
-        if (n.op === '&') return any(`${n.l.k === 'bin' && n.l.op === '&' ? l : `String(${l})`} + String(${r})`);
+        // Make joins a missing value as empty text; literals need no guard.
+        const text = (side: Node, js: string) => (side.k === 'str' || side.k === 'num' ? `String(${js})` : `String(${js} ?? '')`);
+        if (n.op === '&') return any(`${n.l.k === 'bin' && n.l.op === '&' ? l : text(n.l, l)} + ${text(n.r, r)}`);
         const op = ({ '=': '==', '<>': '!=', and: '&&', or: '||', '|': '||', mod: '%' } as Record<string, string>)[n.op] ?? n.op;
         return any(`${l} ${op} ${r}`);
       }
@@ -532,6 +544,24 @@ function splitTemplate(src: string): Array<{ text: string } | { expr: string; ra
   return parts;
 }
 
+/** A JSON body written as text with {{…}} inside: Make pastes values in as they are, so a quote in a value
+ *  breaks the JSON (and n8n refuses to send it). Values inside JSON strings get escaped, unless the formula
+ *  already escapes them itself with replace(). */
+export function jsonBodyText(value: string): string {
+  let inString = false;
+  return splitTemplate(value).map((part) => {
+    if ('text' in part) {
+      for (let i = 0; i < part.text.length; i++) {
+        if (part.text[i] === '\\' && inString) i++;
+        else if (part.text[i] === '"') inString = !inString;
+      }
+      return part.text;
+    }
+    if ('broken' in part) return part.broken;
+    return inString && !/\breplace\s*\(/.test(part.expr) ? `{{__jsonText(${part.expr})}}` : part.raw;
+  }).join('');
+}
+
 export function translateMakeExpr(value: string, ctx: MakeExprCtx): Translated {
   const parts = splitTemplate(value);
   if (!parts.some((p) => !('text' in p))) return { value, ok: true, notes: [] };
@@ -564,7 +594,7 @@ export function translateMakeJs(value: string, ctx: MakeExprCtx): { js: string; 
       else if ('broken' in p) throw new Unsupported('a {{ is not closed');
       else {
         const js = printer.p(new Parser(tokenize(p.expr)).parseAll()).js;
-        out.push(parts.length > 1 ? `String(${js})` : js);
+        out.push(parts.length > 1 ? `String(${js} ?? '')` : js);
       }
     }
   } catch (e) {

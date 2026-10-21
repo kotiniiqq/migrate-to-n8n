@@ -13,7 +13,7 @@
         ],
         "parameters": {
           "httpMethod": "POST",
-          "path": "lead-routing",
+          "path": "lead-routing-random",
           "responseMode": "onReceived",
           "options": {}
         },
@@ -70,7 +70,7 @@
               {
                 "id": "id-6",
                 "name": "output",
-                "value": "={{ String($('New lead').item.json.body.name).toTitleCase() }}",
+                "value": "={{ String($('New lead').item.json.body.name).toLowerCase().toTitleCase() }}",
                 "type": "string"
               }
             ]
@@ -114,7 +114,7 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ \"name\": $('Name in title case').item.json.output, \"email\": $('New lead').item.json.body.email, \"tags\": $('New lead').item.json.body.tags[0] }) }}",
+          "jsonBody": "={{ JSON.stringify({ \"name\": $('Name in title case').item.json.output, \"email\": $('New lead').item.json.body.email, \"tags\": $('New lead').item.json.body.tags?.[0] }) }}",
           "options": {}
         }
       },
@@ -138,7 +138,14 @@
             "mode": "id",
             "value": "C0123"
           },
-          "otherOptions": {}
+          "otherOptions": {
+            "includeLinkToWorkflow": false
+          }
+        },
+        "credentials": {
+          "slackApi": {
+            "name": "Slack account"
+          }
         }
       },
       {
@@ -172,7 +179,7 @@
             "parameters": [
               {
                 "name": "domain",
-                "value": "={{ $('New lead').item.json.body.company.domain }}"
+                "value": "={{ $('New lead').item.json.body.company?.domain }}"
               }
             ]
           },
@@ -242,7 +249,7 @@
               },
               {
                 "id": "id-16",
-                "leftValue": "={{ $('New lead').item.json.body.company.domain }}",
+                "leftValue": "={{ $('New lead').item.json.body.company?.domain }}",
                 "rightValue": "corp",
                 "operator": {
                   "type": "string",
@@ -461,13 +468,13 @@
     "webhooks": [
       {
         "node": "New lead",
-        "path": "lead-routing"
+        "path": "lead-routing-random"
       }
     ],
     "placeholders": [],
     "nextSteps": [
       "Connect credentials in n8n for: Slack.",
-      "Point the senders to the new webhook URL: \"New lead\" (…/webhook/lead-routing).",
+      "Point the senders to the new webhook URL: \"New lead\" (…/webhook/lead-routing-random).",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

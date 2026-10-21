@@ -3,8 +3,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { checkWorkflow } from '../build/check.ts';
-import { convertMake, convertZapier, defaultOutputDir, writeResult } from '../convert.ts';
-import { readInput, readWorkflow, resolvePath } from '../io.ts';
+import { convertMake, convertZapier, defaultOutputDir, homePath, writeResult } from '../convert.ts';
+import { readInput, readWorkflow } from '../io.ts';
 import { N8N_APPS } from '../map/n8n-apps.ts';
 import { allEntries } from '../map/registry.ts';
 import { describeModule } from '../map/suggest.ts';
@@ -59,7 +59,7 @@ export function createServer(opts: { env?: Record<string, string | undefined> } 
   const env = opts.env ?? process.env;
   const upload = uploadConfig(env);
   const server = new McpServer({ name: 'migrate-to-n8n', version: VERSION }, { instructions: INSTRUCTIONS });
-  const outDir = (dir?: string) => (dir?.trim() ? resolvePath(dir) : defaultOutputDir(env));
+  const outDir = (dir?: string) => (dir?.trim() ? homePath(dir) : defaultOutputDir(env));
 
   server.registerTool('convert_make', {
     title: 'Convert a Make scenario to n8n',

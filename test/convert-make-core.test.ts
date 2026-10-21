@@ -33,8 +33,11 @@ for (const name of FIXTURES) {
   });
 }
 
+/** Modules in routes, and error-handler modules other than directives: each is a step of the report too. */
 function countNested(flow: any[]): number {
-  return flow.reduce((n, m) => n + (m.routes ?? []).reduce((k: number, r: any) => k + r.flow.length + countNested(r.flow), 0), 0);
+  return flow.reduce((n, m) => n
+    + (m.onerror ?? []).filter((h: any) => !String(h.module).startsWith('builtin:')).length
+    + (m.routes ?? []).reduce((k: number, r: any) => k + r.flow.length + countNested(r.flow), 0), 0);
 }
 
 test('webhook in, set variable, respond: webhook uses a response node, references read the request body', () => {
@@ -93,7 +96,7 @@ test('HTTP: method, URL, headers, raw JSON body; a response field "data.x" reads
   assert.equal(http.parameters.url, 'https://billing.example.com/api/tickets');
   assert.equal(http.parameters.contentType, 'json');
   assert.equal(http.parameters.specifyBody, 'json');
-  assert.match(String(http.parameters.jsonBody), /\{\{ \$\('Webhook'\)\.item\.json\.body\.subject \}\}/);
+  assert.match(String(http.parameters.jsonBody), /\{\{ JSON\.stringify\(String\(\$\('Webhook'\)\.item\.json\.body\.subject \?\? ''\)\)\.slice\(1, -1\) \}\}/);
   assert.deepEqual((http.parameters.headerParameters as any).parameters, [{ name: 'X-Source', value: 'make' }]);
   const parse = byName(r, 'Parse JSON');
   assert.equal(parse.type, NODE.set.type);
@@ -118,7 +121,7 @@ test('iterator and aggregator: Split Out the array, collect items into "array" l
   const agg = byName(r, 'Array aggregator');
   assert.equal(agg.type, NODE.aggregate.type);
   assert.equal(agg.parameters.destinationFieldName, 'array');
-  assert.match(json(byName(r, 'HTTP request 2')), /Array aggregator'\)\.item\.json\.array\.map\(e => e\?\.line\)/);
+  assert.match(json(byName(r, 'HTTP request 2')), /Array aggregator'\)\.item\.json\.array \?\? \[\]\)\.map\(e => e\?\.line\)/);
   assert.equal(r.report.totals.manual, 0);
 });
 

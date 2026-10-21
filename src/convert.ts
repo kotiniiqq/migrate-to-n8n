@@ -1,16 +1,17 @@
 /** Source graph → n8n workflow + report. Shared by Make and Zapier; each source brings its parser,
  *  formula translator and condition operators. */
+import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 
 import { buildWorkflow, type PlannedEdge, type PlannedNode } from './build/workflow.ts';
 import { translateMakeExpr, translateMakeJs, type MakeExprCtx } from './make/expr.ts';
 import { makeLabel, parseMake } from './make/parse.ts';
-import { conditionParameters, MAKE_OPS, ZAPIER_OPS, type OpSpec } from './map/conditions.ts';
+import { conditionParameters, MAKE_OPS, UNFINISHED_ZAPIER, ZAPIER_OPS, type OpSpec } from './map/conditions.ts';
 import './map/make/index.ts';
 import './map/zapier/index.ts';
-import { findEntry, n8nNode, worst, type MapCtx, type MapOutput } from './map/registry.ts';
+import { findEntry, n8nNode, NODE, worst, type MapCtx, type MapOutput } from './map/registry.ts';
 import { suggestFor } from './map/suggest.ts';
 import type { ConversionReport, ConversionResult, Source, SourceGraph, SourceStep, Status, StepReport } from './types.ts';
 import { renderMarkdown } from './report/render.ts';
@@ -21,7 +22,7 @@ import { InputError } from './types.ts';
 
 export interface RefCtx {
   refName(id: string): string | undefined;
-  refBase?(id: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
+  refBase?(id: string, firstField?: string, path?: string[]): { base: string; drop: number; note?: string } | undefined;
 }
 
 interface Dialect {
@@ -46,20 +47,59 @@ interface StepOut {
 const NODE_SCHEDULE = 'n8n-nodes-base.scheduleTrigger';
 const isTriggerType = (type: string) => /(trigger|webhook)$/i.test(type) && !/respondToWebhook$/.test(type);
 
+/** The scenario name made URL-safe, with a random end: two workflows of the same name ("Untitled Zap") must not
+ *  share a webhook path, or n8n refuses to activate the second. */
 function slugify(name: string): string {
   const s = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
-  return s || `scenario-${Math.random().toString(36).slice(2, 8)}`;
+  return `${s || 'scenario'}-${randomBytes(4).toString('hex')}`;
 }
+
+/** Nodes that mappings add around an app node; the credential belongs to the app node. */
+const HELPER_TYPES = new Set<string>(['set', 'code', 'filter', 'splitOut', 'aggregate', 'merge', 'noOp', 'limit'].map((k) => NODE[k as keyof typeof NODE].type));
+
+/** n8n adds "sent automatically with n8n" or a link to the workflow to messages unless told not to; Make and
+ *  Zapier added nothing. [node type, default resource, sending operations, collection, option]. */
+const QUIET: Array<[string, string, string[], string, string]> = [
+  [NODE.gmail.type, 'message', ['send', 'reply'], 'options', 'appendAttribution'],
+  [NODE.emailSend.type, 'email', ['send'], 'options', 'appendAttribution'],
+  [NODE.slack.type, 'message', ['post', 'update'], 'otherOptions', 'includeLinkToWorkflow'],
+  [NODE.telegram.type, 'message', ['editMessageText', 'sendAnimation', 'sendAudio', 'sendDocument', 'sendLocation', 'sendMessage', 'sendMediaGroup', 'sendPhoto', 'sendSticker', 'sendVideo'], 'additionalFields', 'appendAttribution'],
+];
+
+function quiet(n: { type: string; parameters: Record<string, unknown> }): void {
+  for (const [type, resource, ops, collection, option] of QUIET) {
+    const p = n.parameters;
+    // Only nodes a mapping set to send: a bare app node (a manual step) shows no such option.
+    if (n.type !== type || (p.resource ?? resource) !== resource || p.operation === undefined || !ops.includes(String(p.operation))) continue;
+    const c = p[collection] && typeof p[collection] === 'object' ? (p[collection] as Record<string, unknown>) : {};
+    p[collection] = { ...c, [option]: c[option] ?? false };
+  }
+}
+
+const duration = (sec: number) => {
+  for (const [unit, size] of [['day', 86400], ['hour', 3600], ['minute', 60]] as const) {
+    if (sec % size === 0) return `${sec / size} ${unit}${sec === size ? '' : 's'}`;
+  }
+  return `${sec} second${sec === 1 ? '' : 's'}`;
+};
 
 function scheduleNode(g: SourceGraph): { node: ReturnType<typeof n8nNode>; note?: string } {
   const s = g.schedule;
   const interval = (rule: Record<string, unknown>) => ({ rule: { interval: [rule] } });
   if (s?.kind === 'interval' && typeof s.value === 'number' && s.value > 0) {
+    // n8n repeats seconds and minutes as a cron step (*/n), exact only when n divides 60; hours below 24 and
+    // whole days it counts itself. Anything else gets the nearest interval n8n can keep, with a note.
     const sec = s.value;
-    const rule = sec < 60 ? { field: 'seconds', secondsInterval: sec }
-      : sec % 3600 === 0 ? { field: 'hours', hoursInterval: sec / 3600 }
-        : { field: 'minutes', minutesInterval: Math.max(1, Math.round(sec / 60)) };
-    return { node: n8nNode('scheduleTrigger', 'Schedule', interval(rule)) };
+    const exact = [
+      ...[1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30].flatMap((n) => [{ sec: n, rule: { field: 'seconds', secondsInterval: n } }, { sec: n * 60, rule: { field: 'minutes', minutesInterval: n } }]),
+      ...Array.from({ length: 23 }, (_, i) => ({ sec: (i + 1) * 3600, rule: { field: 'hours', hoursInterval: i + 1 } })),
+      ...Array.from({ length: 31 }, (_, i) => ({ sec: (i + 1) * 86400, rule: { field: 'days', daysInterval: i + 1 } })),
+    ];
+    const ratio = (a: number) => Math.abs(Math.log(a / sec));
+    const best = exact.reduce((b, c) => (ratio(c.sec) < ratio(b.sec) ? c : b));
+    const node = n8nNode('scheduleTrigger', 'Schedule', interval(best.rule));
+    if (best.sec === sec) return { node };
+    return { node, note: `Make ran this every ${duration(sec)}; n8n cannot repeat at exactly that interval, so the schedule runs every ${duration(best.sec)}: change it (or use a cron expression) if the timing matters.` };
   }
   if ((s?.kind === 'daily' || s?.kind === 'weekly' || s?.kind === 'monthly') && typeof s.value === 'string') {
     const [h, m] = s.value.split(':').map(Number);
@@ -129,11 +169,11 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
         checkSource(id);
         return o.name;
       },
-      refBase(id, first) {
+      refBase(id, first, path) {
         const o = outs.get(id);
         if (!o?.ref) return undefined;
         checkSource(id);
-        return o.ref(o.name, first);
+        return o.ref(o.name, first, path);
       },
     };
     const tr = d.translate(refs);
@@ -178,6 +218,8 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     };
   };
 
+  // Modules of Make error-handler routes: reported after their step, built by hand.
+  const handlerReports = new Map<string, StepReport[]>();
   for (const step of g.steps) {
     const sink = { notes: [] as string[], status: 'converted' as Status };
     const ctx = makeCtx(step, sink);
@@ -191,6 +233,7 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     }
     if (!res.nodes.length) res = { ...res, nodes: [n8nNode('noOp', step.label, {})] };
     if (step.detached) ctx.note('This step is not connected to the rest of the workflow in the export (its parent step is missing): connect it where it belongs.', true);
+    for (const f of step.flagged ?? []) ctx.note(f.text, f.serious);
     for (const n of res.notes ?? []) ctx.note(n);
     let status = worst(sink.status, res.status);
 
@@ -199,11 +242,18 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     res.nodes.forEach((n, i) => {
       const name = reserve(i === res.nodes.length - 1 ? step.label : n.wanted);
       const key = `${step.id}#${i}`;
+      quiet(n);
       planned.push({ ...n, key, wanted: name });
       if (i > 0) edges.push({ from: stepKeys[i - 1], to: key });
       stepKeys.push(key);
       names.push(name);
     });
+    const own = new Map(res.nodes.map((n, i) => [n.wanted, names[i]]));
+    for (const p of planned.slice(-res.nodes.length)) {
+      if (!p.named) continue;
+      p.parameters = p.named((w) => own.get(w) ?? w);
+      delete p.named;
+    }
     const exitKey = stepKeys[stepKeys.length - 1];
     const work = planned[planned.length - 1];
 
@@ -216,18 +266,35 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
         work.onError = 'continueRegularOutput';
         ctx.note('Make continued with substitute values after an error; n8n continues with the error details instead: add the substitute values if later steps need them.', true);
       } else if (directive === 'Break') {
-        const count = Number((step.params as { count?: unknown }).count ?? 3);
-        const tries = Math.min(5, Math.max(2, (Number.isFinite(count) ? count : 3) + 1));
-        work.retry = { maxTries: tries, waitBetweenTries: 5000 };
-        ctx.note(`Make stored the failed run and retried it later; n8n retries this step ${tries} times, 5 s apart. For longer gaps use an error workflow.`, true);
+        const params = step.onErrorParams ?? {};
+        if (params.storesIncomplete === false) {
+          ctx.note('Make "Break" kept nothing to retry, because the scenario does not store incomplete executions: the workflow stops on an error here, as in Make.');
+        } else if (params.retry === false || params.retry === 'false') {
+          ctx.note('Make stored the failed run for you to resolve by hand (automatic retry was off); n8n stops on an error here: look at the failed executions in n8n.', true);
+        } else {
+          const n = Number(params.count ?? 3);
+          const count = Number.isFinite(n) && n > 0 ? Math.round(n) : 3;
+          const tries = Math.min(5, count + 1);
+          const interval = Number(params.interval ?? 15);
+          work.retry = { maxTries: tries, waitBetweenTries: 5000 };
+          ctx.note(`Make retried the stored run ${count} times${Number.isFinite(interval) ? `, ${interval} min apart` : ''}; n8n makes ${tries - 1} retries (${tries} attempts), 5 s apart${tries < count + 1 ? ', the most n8n allows' : ''}. For longer gaps use an error workflow.`, true);
+        }
       } else {
         ctx.note(`Make "${directive}" error handling has no n8n equivalent (no transactions): the workflow stops on an error here.`, true);
       }
       status = worst(status, sink.status);
     }
     if (step.errorHandler?.length) {
-      ctx.note(`On an error Make ran: ${step.errorHandler.map((k) => `"${d.label(k)}"`).join(', ')}. In n8n set this node's "On Error" to "Continue (using error output)" and connect the same steps to the error output.`, true);
+      const ran = step.errorHandler.map((h) => `"${h.label}"`).join(', ');
+      const how = work.onError === 'continueErrorOutput'
+        ? 'add them in n8n on the error output of this node (already turned on)'
+        : `switch "On Error" of this node to "Continue (using error output)" in n8n and add them on the error output${work.onError === 'continueRegularOutput' ? ', then on to the next step, as Make resumed' : ''}`;
+      ctx.note(`On an error Make ran: ${ran}. They are not in the workflow yet: ${how}.`, true);
       status = worst(status, 'review');
+      handlerReports.set(step.id, step.errorHandler.map((h) => ({
+        sourceId: h.id, sourceLabel: h.label, sourceKey: h.key, n8nNodes: [], status: 'manual', notes: [],
+        suggestion: `Make ran this when "${step.label}" failed. Not in the workflow: build it in n8n on the error output of "${work.wanted}" (its "On Error" set to "Continue (using error output)").`,
+      })));
     }
 
     let entryKey = stepKeys[0];
@@ -244,9 +311,15 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     const outName = names[names.length - 1];
     for (const v of res.sets ?? []) vars.set(v, { name: outName, stepId: step.id });
     if (res.credential) {
-      const k = `${res.credential.app}|${res.credential.credentialType}`;
+      // The app node of the step (helpers such as a Filter or Code node may come after it) gets the credential
+      // without an id: n8n keeps it for picking, and `check` reports it until one is selected.
+      const at = Math.max(0, res.nodes.map((n) => !HELPER_TYPES.has(n.type)).lastIndexOf(true));
+      const node = planned[planned.length - res.nodes.length + at];
+      const { app, credentialType } = res.credential;
+      node.credentials = { ...node.credentials, [credentialType]: { name: `${app} account` } };
+      const k = `${app}|${credentialType}`;
       const c = credentials.get(k) ?? { ...res.credential, nodes: [] };
-      c.nodes.push(outName);
+      c.nodes.push(names[at]);
       credentials.set(k, c);
     }
     if (res.webhookPath) webhooks.push({ node: outName, path: res.webhookPath });
@@ -261,12 +334,16 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
     const from = outs.get(e.from);
     const to = outs.get(e.to);
     if (!from || !to) continue;
-    if (e.branch?.condition) {
+    // A Zapier path without conditions (and not set to always run) was left unfinished: it gets a REPLACE-ME filter.
+    const unfinished = d.source === 'zapier' && e.branch && !e.branch.condition && !e.branch.alwaysRun;
+    const condition = e.branch?.condition ?? (unfinished ? UNFINISHED_ZAPIER : undefined);
+    if (e.branch && condition) {
       const sink = { notes: to.report.notes, status: to.report.status };
       const ctx = makeCtx(to.step, sink);
       const fname = reserve(e.branch.label || `Route ${e.branch.index + 1}`);
       const fkey = `${e.from}>${e.to}#route`;
-      planned.push({ ...n8nNode('filter', fname, conditionParameters(e.branch.condition, d.ops, ctx, fname)), key: fkey, wanted: fname });
+      if (unfinished) ctx.note(`"${fname}" has no conditions in the export: it holds every item back until you replace its REPLACE-ME condition.`, true);
+      planned.push({ ...n8nNode('filter', fname, conditionParameters(condition, d.ops, ctx, fname)), key: fkey, wanted: fname });
       edges.push({ from: from.exit, to: fkey }, { from: fkey, to: to.entry });
       to.report.n8nNodes.unshift(fname);
       to.report.status = worst(to.report.status, sink.status);
@@ -292,16 +369,25 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
 
   // n8n accepts workflow names of up to 128 characters.
   const { workflow } = buildWorkflow([...g.name].slice(0, 128).join('').trim() || 'Workflow', planned, edges);
-  const steps = [...outs.values()].map((o) => o.report);
+  const steps = [...outs.values()].flatMap((o) => [o.report, ...(handlerReports.get(o.step.id) ?? [])]);
   const totals: Record<Status, number> = { converted: 0, review: 0, manual: 0 };
   for (const s of steps) totals[s.status]++;
+  const handlers = [...handlerReports.values()].flat().length;
+  const placed = totals.manual - handlers;
 
   const nextSteps: string[] = [];
   if (credentials.size) nextSteps.push(`Connect credentials in n8n for: ${[...credentials.values()].map((c) => c.app).join(', ')}.`);
   if (webhooks.length) nextSteps.push(`Point the senders to the new webhook URL${webhooks.length > 1 ? 's' : ''}: ${webhooks.map((w) => `"${w.node}" (…/webhook/${w.path})`).join(', ')}.`);
-  if (totals.manual) nextSteps.push(`Finish ${totals.manual} step${totals.manual > 1 ? 's' : ''} by hand: ${totals.manual > 1 ? 'they are' : 'it is'} disabled and marked ⚠, with a suggestion next to ${totals.manual > 1 ? 'each' : 'it'}.`);
+  if (placed) nextSteps.push(`Finish ${placed} step${placed > 1 ? 's' : ''} by hand: ${placed > 1 ? 'they are' : 'it is'} disabled and marked ⚠, with a suggestion next to ${placed > 1 ? 'each' : 'it'}.`);
+  if (handlers) nextSteps.push(`Build ${handlers} Make error-handler step${handlers > 1 ? 's' : ''} on the error output, as the report suggests.`);
   if (totals.review) nextSteps.push(`Check ${totals.review} step${totals.review > 1 ? 's' : ''} marked "review".`);
   if (placeholders.length) nextSteps.push(`Fill in ${placeholders.length} REPLACE-ME value${placeholders.length > 1 ? 's' : ''}.`);
+  // The export has no time zone; n8n uses the workflow's, else the instance default.
+  const timed = workflow.nodes.some((n) => /\$now|\$today|DateTime\./.test(JSON.stringify(n.parameters))
+    || (n.type === NODE_SCHEDULE && /triggerAtHour|cronExpression/.test(JSON.stringify(n.parameters))));
+  if (timed) {
+    nextSteps.push(`Set the time zone in the workflow settings to the one your ${g.source === 'make' ? 'Make' : 'Zapier'} account used: dates, times and schedules here follow it (without it n8n uses the instance default, often America/New_York).`);
+  }
   nextSteps.push(...extraNotes);
   nextSteps.push('Run the workflow once with test data, then activate (publish) it.');
 
@@ -332,8 +418,19 @@ export function setting(value: string | undefined): string | undefined {
   return v && !/^\$\{[^}]*\}$/.test(v) ? v : undefined;
 }
 
+const PLACES: Record<string, string[]> = { HOME: [], DOCUMENTS: ['Documents'], DESKTOP: ['Desktop'], DOWNLOADS: ['Downloads'] };
+
+/** A folder chosen by the user: Claude Desktop passes `${HOME}` and the like through as text, and a relative folder goes under the home folder, never the server's working directory. */
+export function homePath(dir: string): string {
+  const t = dir.trim().replace(/^["']|["']$/g, '')
+    .replace(/^\$\{(\w+)\}/, (whole, name: string) => (PLACES[name] ? join(homedir(), ...PLACES[name]) : whole))
+    .replace(/^~(?=$|[\\/])/, homedir());
+  return isAbsolute(t) ? join(t) : join(homedir(), t);
+}
+
 export function defaultOutputDir(env: Record<string, string | undefined> = process.env): string {
-  return setting(env.MIGRATE_OUTPUT_DIR) ?? join(homedir(), 'Documents', 'migrate-to-n8n');
+  const dir = setting(env.MIGRATE_OUTPUT_DIR);
+  return dir ? homePath(dir) : join(homedir(), 'Documents', 'migrate-to-n8n');
 }
 
 /** Write `<name>.n8n.json`, `<name>.report.md` and `<name>.report.json` into `dir`, never overwriting files. */

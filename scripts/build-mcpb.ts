@@ -1,7 +1,7 @@
 /** Build the Claude Desktop extension: migrate-to-n8n.mcpb (a stable name for releases/latest/download).
  *
  *  The bundle holds the compiled server (dist/), its production dependencies and a manifest whose tool list and
- *  version come from the code, so they cannot drift. Run `npm run build` first.
+ *  version come from the code, so they cannot drift. `npm run mcpb` builds dist first.
  *
  *   npm run mcpb
  */

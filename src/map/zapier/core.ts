@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { convertDateFormat } from '../../make/expr.ts';
 import { criteria } from '../../zapier/parse.ts';
 import { nodeRef } from '../../util/names.ts';
-import { conditionParameters, ZAPIER_OPS } from '../conditions.ts';
+import { conditionParameters, UNFINISHED_ZAPIER, ZAPIER_OPS } from '../conditions.ts';
 import { n8nNode, register, type MapCtx, type MapOutput } from '../registry.ts';
 import { httpMethod } from '../shared.ts';
 
@@ -115,8 +115,8 @@ register({
   build(ctx) {
     const groups = criteria(ctx.step.params);
     if (!groups) {
-      ctx.note('The filter has no conditions in the export (unfinished in Zapier?); every item passes: add the conditions in n8n.', true);
-      return { nodes: [n8nNode('noOp', ctx.step.label, {})], status: 'review' };
+      ctx.note('The filter has no conditions in the export (unfinished in Zapier?): it holds every item back until you replace the REPLACE-ME condition with the real ones.', true);
+      return { nodes: [n8nNode('filter', ctx.step.label, conditionParameters(UNFINISHED_ZAPIER, ZAPIER_OPS, ctx, ctx.step.label))], status: 'review' };
     }
     return { nodes: [n8nNode('filter', ctx.step.label, conditionParameters(groups, ZAPIER_OPS, ctx, ctx.step.label))], status: 'converted' };
   },
@@ -128,7 +128,7 @@ register({
     ctx.note('Every path whose conditions match runs, as in Zapier.');
     const open = ctx.graph.edges.filter((e) => e.from === ctx.step.id && e.branch && !e.branch.condition && !e.branch.alwaysRun);
     const names = [...new Set(open.map((e) => e.branch!.label ?? `path ${e.branch!.index + 1}`))];
-    if (names.length) ctx.note(`${names.join(', ')} ${names.length > 1 ? 'have' : 'has'} no conditions in the export, so ${names.length > 1 ? 'they always run' : 'it always runs'}: add the conditions in n8n if Zapier had them.`, true);
+    if (names.length) ctx.note(`${names.join(', ')} ${names.length > 1 ? 'have' : 'has'} no conditions in the export (unfinished in Zapier?): ${names.length > 1 ? 'each starts' : 'it starts'} with a Filter that holds every item back until you replace its REPLACE-ME condition.`, true);
     return { nodes: [n8nNode('noOp', ctx.step.label, {})], status: names.length ? 'review' : 'converted' };
   },
 });
@@ -140,7 +140,7 @@ type Transform = (x: string, p: Record<string, unknown>, ctx: MapCtx) => string 
 const literal = (v: unknown, ctx: MapCtx) => ctx.js(str(v));
 
 const TRANSFORMS: Record<string, Transform> = {
-  'string.titlecase': (x) => `String(${x}).toTitleCase()`,
+  'string.titlecase': (x) => `String(${x}).toLowerCase().toTitleCase()`,
   'string.capitalize': (x) => `(s => s.charAt(0).toUpperCase() + s.slice(1))(String(${x}))`,
   'string.lowercase': (x) => `String(${x}).toLowerCase()`,
   'string.uppercase': (x) => `String(${x}).toUpperCase()`,
@@ -183,7 +183,8 @@ const TRANSFORMS: Record<string, Transform> = {
       if (f && !f.exact) ctx.note(`Date format token ${f.unsupported.join(', ')} has no exact Luxon equivalent; check the output.`, true);
     }
     const zone = p.to_timezone ? `.setZone(${q(str(p.to_timezone))})` : '';
-    const from = fromF ? `DateTime.fromFormat(String(${x}), ${q(fromF.fmt)})` : `DateTime.fromISO(String(${x}))`;
+    const fromZone = p.from_timezone ? `, { zone: ${q(str(p.from_timezone))} }` : '';
+    const from = fromF ? `DateTime.fromFormat(String(${x}), ${q(fromF.fmt)}${fromZone})` : `DateTime.fromISO(String(${x})${fromZone})`;
     return `${from}${zone}.toFormat(${q(to.fmt)})`;
   },
   'date.manipulate': (x, p) => {
@@ -223,7 +224,7 @@ register({
     const suggestion = transform
       ? `Formatter "${transform}" has no automatic translation: write it in this Code node (placed here, disabled; it receives the input as "input"), then enable it.`
       : 'The export has no transform chosen for this Formatter step (unfinished in Zapier?): pick what it should do, write it in this Code node (placed here, disabled; it receives the input as "input"), then enable it.';
-    const jsCode = [`// Zapier Formatter: ${transform || ctx.step.action}`, `const input = ${input};`, '// TODO: transform the input', 'return { json: { output: input } };'].join('\n');
+    const jsCode = [`// Zapier Formatter: ${transform || ctx.step.action}`, `const input = ${input};`, '// TODO: transform the input', 'return { json: { ...$json, output: input } };'].join('\n');
     return {
       nodes: [n8nNode('code', ctx.step.label, { mode: 'runOnceForEachItem', language: 'javaScript', jsCode }, { disabled: true, note: suggestion })],
       status: 'manual',
@@ -269,7 +270,8 @@ register({
       'const result = await (async () => {',
       declares ? '' : '  let output;',
       code.split('\n').map((l) => `  ${l}`).join('\n'),
-      declares ? '' : '  return output;',
+      // typeof: the code may declare output only in an inner block.
+      declares ? "  return typeof output === 'undefined' ? undefined : output;" : '  return output;',
       '})();',
       'return { json: Array.isArray(result) ? { items: result } : (result ?? {}) };',
     ].filter((l) => l !== '').join('\n');
@@ -290,18 +292,25 @@ register({
     if (unit === 'weeks') { amount *= 7; unit = 'days'; }
     if (!['seconds', 'minutes', 'hours', 'days'].includes(unit) || !Number.isFinite(amount)) {
       ctx.note(`Delay "${str(p.time_delay_for_value)} ${str(p.time_delay_for_unit)}" could not be read; set the wait time.`, true);
-      return { nodes: [n8nNode('wait', ctx.step.label, { amount: 1, unit: 'minutes' })], status: 'review' };
+      return { nodes: [n8nNode('wait', ctx.step.label, { amount: 1, unit: 'minutes' })], status: 'review', ref: delayRef('$now.toISO()') };
     }
-    return { nodes: [n8nNode('wait', ctx.step.label, { amount, unit })], status: 'converted' };
+    return { nodes: [n8nNode('wait', ctx.step.label, { amount, unit })], status: 'converted', ref: delayRef('$now.toISO()') };
   },
 });
+
+/** Zapier's Delay outputs when it released the run; n8n's Wait node only passes the item on. */
+const delayRef = (releasedAt: string) => (_out: string, first?: string) => {
+  if (first === 'release_at') return { base: `(${releasedAt})`, drop: 1, note: 'Zapier\'s Delay "release_at" becomes the time the n8n Wait ended.' };
+  if (first) throw new Error(`the Delay field "${first}" has no n8n equivalent`);
+  return undefined;
+};
 
 register({
   source: 'zapier', key: 'DelayCLIAPI:delay_until', label: 'Wait',
   build(ctx) {
     const when = ctx.expr(str(ctx.step.params.time_delay_until ?? ctx.step.params.delay_until));
     ctx.note('Zapier waited until a date and time; check the time zone of the value.', true);
-    return { nodes: [n8nNode('wait', ctx.step.label, { resume: 'specificTime', dateTime: when })], status: 'review' };
+    return { nodes: [n8nNode('wait', ctx.step.label, { resume: 'specificTime', dateTime: when })], status: 'review', ref: delayRef(ctx.js(str(ctx.step.params.time_delay_until ?? ctx.step.params.delay_until))) };
   },
 });
 

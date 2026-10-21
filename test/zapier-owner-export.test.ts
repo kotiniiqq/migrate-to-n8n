@@ -73,3 +73,18 @@ test('Zapier "Z" is a +0000 offset (Luxon ZZZ), unlike Make where it is +00:00',
   assert.match(p2, /HH:mm ZZ'?\)/);
   assert.doesNotMatch(p2, /ZZZ/);
 });
+
+test('an unfinished filter or path becomes a Filter with REPLACE-ME that holds every item back, so check finds it', () => {
+  const r = convert();
+  const placeholders = checkWorkflow(r.workflow).filter((i) => /REPLACE-ME/.test(i.message)).map((i) => i.node);
+  const filter = r.workflow.nodes.find((n) => n.name === step(r, '384209934').n8nNodes.at(-1))!;
+  assert.equal(filter.type, 'n8n-nodes-base.filter');
+  assert.ok(placeholders.includes(filter.name), placeholders.join(', '));
+  for (const id of ['384210041', '384210043']) { // the first step of Path A and of Path B
+    const route = r.workflow.nodes.find((n) => n.name === step(r, id).n8nNodes[0])!;
+    assert.equal(route.type, 'n8n-nodes-base.filter', id);
+    assert.ok(placeholders.includes(route.name), `${route.name}: ${placeholders.join(', ')}`);
+  }
+  const cond = (filter.parameters as any).conditions.conditions[0];
+  assert.notEqual(cond.leftValue, cond.rightValue, 'the placeholder condition never matches');
+});

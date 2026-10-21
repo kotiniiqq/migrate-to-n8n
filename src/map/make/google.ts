@@ -112,15 +112,36 @@ function readRows(key: string) {
         if (letters.length) ctx.note(`Make filtered by column letter (${letters.join(', ')}); n8n rows are keyed by header: replace ['${letters[0]}'] in the Filter with the header name.`, true);
       }
       if (p.sortOrder === 'desc') ctx.note('Make returned the rows newest first; n8n reads top to bottom (add a Sort node if the order matters).', true);
-      // Make returned at most `limit` rows (often 1, as a lookup); without it every match would flow on.
+      // Make returned at most `limit` rows (often 1, as a lookup) for each bundle that reached the search; without it
+      // every match would flow on. n8n's Limit node would cap the whole run, so a Code node keeps `limit` rows per
+      // incoming item, found through the read node's paired items.
       if (limit && limit !== '0') {
-        nodes.push(n8nNode('limit', ctx.step.label, { maxItems: /^\d+$/.test(limit) ? Number(limit) : ctx.expr(limit), keep: 'firstItems' }));
+        const max = /^\d+$/.test(limit) ? Number(limit) : 1;
+        if (!/^\d+$/.test(limit)) ctx.note(`Make limited the rows with a formula (${limit}); set \`max\` in the Code node "${ctx.step.label}" (it keeps 1 row per search for now).`, true);
+        nodes.push(n8nNode('code', ctx.step.label, {}, {
+          named: (nameOf) => ({ mode: 'runOnceForAllItems', jsCode: limitPerItem(nameOf(read.wanted), max) }),
+        }));
       }
       nodes[nodes.length - 1].wanted = ctx.step.label;
       return { nodes, status: 'converted', credential: SHEETS_CRED, ref: rowRef(ctx) };
     },
   });
 }
+
+/** Keep the first `max` items per item that went into the `read` node (Make searched once per bundle). */
+const limitPerItem = (read: string, max: number) => [
+  `// Make returned at most ${max} row(s) for each search: keep that many per item that reached the search.`,
+  `const max = ${max};`,
+  'const kept = new Map();',
+  'return $input.all().flatMap((item, i) => {',
+  `  const p = $(${JSON.stringify(read)}).itemMatching(i)?.pairedItem;`,
+  '  const from = (Array.isArray(p) ? p[0] : p)?.item ?? p ?? 0;',
+  '  const n = kept.get(from) ?? 0;',
+  '  kept.set(from, n + 1);',
+  '  return n < max ? [{ ...item, pairedItem: { item: i } }] : [];',
+  '});',
+].join('\n');
+
 readRows('google-sheets:filterRows');
 readRows('google-sheets:searchRows');
 readRows('google-sheets:searchRowsAdvanced');

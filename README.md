@@ -39,8 +39,8 @@ Measured on 2026-10-21 on the public Make blueprints and Zapier exports found on
 
 | Source | Workflows | Steps | ✅ Converted | ⚠️ To review | 🛠 Manual | Broken outputs | Time (median) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Make | 1,432 | 10,064 | 41% | 39.1% | 19.9% | 0 | 0.7 ms |
-| Zapier | 148 | 910 | 7.3% | 63.5% | 29.2% | 0 | 0.4 ms |
+| Make | 1,432 | 10,129 | 42% | 37.6% | 20.4% | 0 | 0.7 ms |
+| Zapier | 148 | 910 | 7% | 63.7% | 29.2% | 0 | 0.2 ms |
 <!-- corpus:end -->
 
 "Broken outputs" counts workflows that n8n would reject. The test suite also imports a sample of these

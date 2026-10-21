@@ -7,7 +7,7 @@ type MakeModule = {
   parameters?: Record<string, unknown> | null;
   mapper?: Record<string, unknown> | null;
   metadata?: {
-    designer?: { x?: number; y?: number; name?: string };
+    designer?: { x?: number; y?: number; name?: string; messages?: Array<{ severity?: string; message?: string } | null> };
     interface?: Array<{ name?: unknown; label?: unknown }>;
     expect?: Array<{ name?: unknown; spec?: unknown }>;
   };
@@ -99,6 +99,11 @@ function toStep(m: MakeModule): SourceStep {
   const step: SourceStep = { id: String(m.id), key, app, action, label: d?.name?.trim() || makeLabel(key), params };
   if (typeof d?.x === 'number' && typeof d?.y === 'number') step.position = [d.x, d.y];
   if (connectionRef) step.connectionRef = connectionRef;
+  const flagged = (Array.isArray(d?.messages) ? d.messages : [])
+    .filter((x): x is { severity?: string; message: string } => !!x && typeof x.message === 'string' && !!x.message.trim())
+    .map((x) => ({ text: `Make marked this module: ${x.message.replace(/<[^>]+>/g, '').trim()}`, serious: x.severity === 'error' }));
+  if (Object.hasOwn(params, 'hook') && params.hook === null) flagged.push({ text: 'In Make this module has no webhook chosen (unfinished?): the n8n webhook gets a new address either way.', serious: true });
+  if (flagged.length) step.flagged = flagged;
   const labelled = (list: unknown) => (Array.isArray(list) ? list : [])
     .filter((f) => f && typeof f === 'object' && f.name !== undefined && f.label !== undefined)
     .map((f) => ({ name: String(f.name), label: String(f.label) }));
@@ -111,8 +116,12 @@ function toStep(m: MakeModule): SourceStep {
   if (m.onerror?.length) {
     const directives = m.onerror.filter((h) => String(h.module).startsWith('builtin:'));
     const others = m.onerror.filter((h) => !String(h.module).startsWith('builtin:'));
-    step.onError = directives.length ? String(directives[directives.length - 1].module) : 'builtin:Ignore';
-    if (others.length) step.errorHandler = others.map((h) => String(h.module));
+    const directive = directives[directives.length - 1];
+    step.onError = directive ? String(directive.module) : 'builtin:Ignore';
+    if (directive) step.onErrorParams = { ...(directive.parameters ?? {}), ...(directive.mapper ?? {}) };
+    if (others.length) {
+      step.errorHandler = others.map((h) => ({ id: String(h.id), key: String(h.module), label: h.metadata?.designer?.name?.trim() || makeLabel(String(h.module)) }));
+    }
   }
   return step;
 }
@@ -154,7 +163,9 @@ export function parseMake(input: unknown): SourceGraph {
   if (!steps.length) throw new InputError('The blueprint has no modules: export the scenario again from Make (Export Blueprint).');
 
   const graph: SourceGraph = { source: 'make', name: String(bp.name ?? '').trim() || 'Make scenario', steps, edges };
-  const meta = bp.metadata as { instant?: boolean } | undefined;
+  const meta = bp.metadata as { instant?: boolean; scenario?: { dlq?: boolean } } | undefined;
+  // Break only keeps a failed run for retrying when the scenario stores incomplete executions.
+  if (meta?.scenario?.dlq === false) for (const s of steps) if (s.onError === 'builtin:Break') s.onErrorParams = { ...s.onErrorParams, storesIncomplete: false };
   const sched = bp.scheduling as { type?: string; interval?: number; time?: string; cron?: string } | undefined;
   if (meta?.instant) graph.schedule = { kind: 'instant' };
   else if (sched?.type === 'indefinitely' && sched.interval) graph.schedule = { kind: 'interval', value: sched.interval };

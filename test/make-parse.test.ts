@@ -51,7 +51,7 @@ test('error handlers: the directive and the modules of a custom handler route', 
   assert.equal(by('2').onError, 'builtin:Ignore');
   assert.equal(by('3').onError, 'builtin:Break');
   assert.equal(by('4').onError, 'builtin:Resume');
-  assert.deepEqual(by('4').errorHandler, ['email:ActionSendEmail']);
+  assert.deepEqual(by('4').errorHandler, [{ id: '22', key: 'email:ActionSendEmail', label: 'Email: Send Email' }]);
   assert.equal(g.steps.some((s) => s.id === '22'), false); // handler modules are not main steps
 });
 

@@ -76,7 +76,7 @@ export interface MapCtx {
   has(key: string): boolean;
   /** n8n node name that holds the value of a source variable, if a step sets it. */
   variable(name: string): string | undefined;
-  /** URL-safe version of the scenario name. */
+  /** URL-safe version of the scenario name, unique per conversion (webhook paths start with it). */
   slug: string;
   /** n8n node whose output arrives directly at this step (one plain incoming link, no filter), if any. */
   previous?: string;
@@ -94,7 +94,7 @@ export interface MapOutput {
   webhookPath?: string;
   placeholders?: Array<{ field: string; value: string }>;
   /** How formulas read this step's output, when not `$('Out').item.json.<path>`. May throw to refuse a field. */
-  ref?(outName: string, firstField?: string): { base: string; drop: number; note?: string } | undefined;
+  ref?(outName: string, firstField?: string, path?: string[]): { base: string; drop: number; note?: string } | undefined;
   /** Source variables this step sets; later reads point to the output node. */
   sets?: string[];
 }

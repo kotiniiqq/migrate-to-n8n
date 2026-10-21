@@ -1,6 +1,7 @@
 /** Make's built-in modules: webhooks, HTTP, JSON, variables, flow control, tools. */
 import { randomUUID } from 'node:crypto';
 
+import { jsonBodyText } from '../../make/expr.ts';
 import { nodeRef } from '../../util/names.ts';
 import { httpMethod } from '../shared.ts';
 import { n8nNode, register, type MapCtx, type MapOutput } from '../registry.ts';
@@ -93,7 +94,7 @@ function httpEntry(key: string, label: string, auth?: 'basic' | 'apiKey') {
       const bodyType = str(p.bodyType);
       if (bodyType === 'raw') {
         const ct = str(p.contentType) || 'application/json';
-        if (/json/i.test(ct)) Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(str(p.data)) });
+        if (/json/i.test(ct)) Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(jsonBodyText(str(p.data))) });
         else Object.assign(params, { sendBody: true, contentType: 'raw', rawContentType: ct, body: ctx.expr(str(p.data)) });
       } else if (bodyType === 'x_www_form_urlencoded') {
         Object.assign(params, { sendBody: true, contentType: 'form-urlencoded', specifyBody: 'keypair', bodyParameters: { parameters: pairs(p.data, ctx) } });
@@ -156,7 +157,7 @@ register({
         Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: `={{ JSON.stringify(${ctx.js(p.jsonDataStructureBodyContent ?? p.bodyContent ?? {})}) }}` });
         ctx.note('Make built the JSON body from a data structure; check the field names.', true);
       } else {
-        Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(str(p.jsonStringBodyContent ?? p.bodyContent)) });
+        Object.assign(params, { sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: ctx.expr(jsonBodyText(str(p.jsonStringBodyContent ?? p.bodyContent))) });
       }
     } else if (ct === 'x-www-form-urlencoded' || ct === 'urlEncoded') {
       Object.assign(params, { sendBody: true, contentType: 'form-urlencoded', specifyBody: 'keypair', bodyParameters: { parameters: pairs(p.formBodyContent ?? p.bodyContent, ctx) } });
@@ -307,11 +308,9 @@ register({
     const fields = Object.entries(ctx.step.params).filter(([k]) => !['feeder', 'groupBy', 'stopIfEmpty', 'target'].includes(k));
     const nodes = [];
     if (fields.length) {
-      nodes.push(n8nNode('set', `${ctx.step.label} (fields)`, {
-        mode: 'manual',
-        assignments: { assignments: fields.map(([k, v]) => assignment(k, ctx.expr(typeof v === 'string' ? v : JSON.stringify(v)))) },
-        options: {},
-      }));
+      // Built as JSON so numbers and yes/no values keep their type, as in Make's array (a text field would turn them into text).
+      const obj = fields.map(([k, v]) => `${JSON.stringify(k)}: ${typeof v === 'string' ? `(${ctx.js(v)}) ?? null` : JSON.stringify(v)}`).join(', ');
+      nodes.push(n8nNode('set', `${ctx.step.label} (fields)`, { mode: 'raw', jsonOutput: `={{ JSON.stringify({ ${obj} }) }}`, options: {} }));
     }
     nodes.push(n8nNode('aggregate', ctx.step.label, { aggregate: 'aggregateAllItemData', destinationFieldName: 'array', options: {} }));
     if (ctx.step.params.groupBy) ctx.note('Make grouped the items ("Group by"); n8n aggregates all of them: split by group with a Code node or Summarize.', true);

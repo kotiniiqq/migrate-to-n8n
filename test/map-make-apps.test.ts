@@ -6,7 +6,7 @@ import { oneMake } from './helpers/one.ts';
 const p = (n: { parameters: Record<string, unknown> }) => n.parameters as Record<string, any>;
 const W = "$('Webhook').item.json.body";
 
-test('OpenAI chat completion → OpenAI node (Responses), messages, model, options; readers are flagged', () => {
+test('OpenAI chat completion → OpenAI node (Responses), messages, model, options; the answer is read from n8n output', () => {
   const r = oneMake('openai-gpt-3:CreateCompletion', { select: 'chat', model: 'gpt-4o-mini', max_tokens: '500', temperature: '0.2', response_format: 'json_object', messages: [{ role: 'system', content: 'Be brief' }, { role: 'user', content: '{{1.q}}' }] }, { reader: '{{2.choices[].message.content}}' });
   assert.equal(r.node.type, '@n8n/n8n-nodes-langchain.openAi');
   assert.equal(p(r.node).resource, 'text');
@@ -15,7 +15,7 @@ test('OpenAI chat completion → OpenAI node (Responses), messages, model, optio
   assert.deepEqual(p(r.node).responses.values[1], { type: 'text', role: 'user', content: `={{ ${W}.q }}` });
   assert.equal(p(r.node).options.maxTokens, 500);
   assert.equal(p(r.node).options.temperature, 0.2);
-  assert.equal(r.readerStep!.status, 'review');
+  assert.match(JSON.stringify(r.readerNode!.parameters), /\.item\.json\.output\[0\]\.content\[0\]\.text/);
   assert.equal(r.result.report.credentials[0].credentialType, 'openAiApi');
 });
 

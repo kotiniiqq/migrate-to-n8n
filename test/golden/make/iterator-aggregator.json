@@ -68,7 +68,7 @@
               {
                 "id": "id-5",
                 "name": "line",
-                "value": "={{ String($('Iterator').item.json.name).toUpperCase() }}: {{ Math.round($('Iterator').item.json.price * 1.2) }} EUR",
+                "value": "={{ String($('Iterator').item.json.name ?? '').toUpperCase() }}: {{ Math.round($('Iterator').item.json.price * 1.2) }} EUR",
                 "type": "string"
               }
             ]
@@ -87,22 +87,13 @@
           0
         ],
         "parameters": {
-          "mode": "manual",
-          "assignments": {
-            "assignments": [
-              {
-                "id": "id-7",
-                "name": "line",
-                "value": "={{ $('Set variable').item.json.line }}",
-                "type": "string"
-              }
-            ]
-          },
+          "mode": "raw",
+          "jsonOutput": "={{ JSON.stringify({ \"line\": ($('Set variable').item.json.line) ?? null }) }}",
           "options": {}
         }
       },
       {
-        "id": "id-8",
+        "id": "id-7",
         "name": "Array aggregator",
         "type": "n8n-nodes-base.aggregate",
         "typeVersion": 1,
@@ -117,7 +108,7 @@
         }
       },
       {
-        "id": "id-9",
+        "id": "id-8",
         "name": "HTTP request 2",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.3,
@@ -131,7 +122,7 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={\"lines\": \"{{ $('Array aggregator').item.json.array.map(e => e?.line).join(\", \") }}\", \"count\": {{ $('Array aggregator').item.json.array.length }}}",
+          "jsonBody": "={\"lines\": \"{{ JSON.stringify(String(($('Array aggregator').item.json.array ?? []).map(e => e?.line).join(\", \") ?? '')).slice(1, -1) }}\", \"count\": {{ ($('Array aggregator').item.json.array ?? []).length }}}",
           "options": {}
         }
       }

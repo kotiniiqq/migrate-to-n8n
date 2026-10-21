@@ -80,7 +80,7 @@ test('webhook POST: JSON body from the data fields, headers; GET: query paramete
   const post = byName(r, 'Send to the German CRM');
   assert.equal(post.parameters.method, 'POST');
   assert.equal(post.parameters.contentType, 'json');
-  assert.match(String(post.parameters.jsonBody), /"tags": \$\('New lead'\)\.item\.json\.body\.tags\[0\]/);
+  assert.match(String(post.parameters.jsonBody), /"tags": \$\('New lead'\)\.item\.json\.body\.tags\?\.\[0\]/);
   assert.deepEqual((post.parameters.headerParameters as any).parameters, [{ name: 'X-Api-Key', value: 'abc123' }]);
   const get = byName(r, 'Look up the company');
   assert.equal(get.parameters.method, 'GET');

@@ -14,7 +14,12 @@ export function uploadConfig(env: Record<string, string | undefined> = process.e
   return url && apiKey ? { url, apiKey } : null;
 }
 
-const NODE_FIELDS = ['id', 'name', 'webhookId', 'disabled', 'notes', 'type', 'typeVersion', 'retryOnFail', 'maxTries', 'waitBetweenTries', 'onError', 'position', 'parameters', 'credentials'];
+// What the public API accepts (n8n 1.123 and 2.44); anything else in the file (ids, tags, read-only fields) is left out.
+const NODE_FIELDS = ['id', 'name', 'webhookId', 'disabled', 'notesInFlow', 'notes', 'type', 'typeVersion', 'executeOnce', 'alwaysOutputData',
+  'retryOnFail', 'maxTries', 'waitBetweenTries', 'continueOnFail', 'onError', 'position', 'parameters', 'credentials'];
+const SETTINGS_FIELDS = ['executionOrder', 'timezone', 'errorWorkflow', 'saveManualExecutions', 'saveExecutionProgress', 'callerPolicy'];
+
+const pick = (o: unknown, keys: string[]) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k]) => keys.includes(k)));
 
 export async function uploadWorkflow(w: N8nWorkflow, cfg: UploadConfig, opts: { timeoutMs?: number } = {}): Promise<{ id: string; url: string; active: false }> {
   const base = cfg.url.trim().replace(/\/+$/, '').replace(/\/api\/v1$/, '');
@@ -24,11 +29,15 @@ export async function uploadWorkflow(w: N8nWorkflow, cfg: UploadConfig, opts: { 
   } catch {
     throw new Error(`N8N_URL is not a web address: ${cfg.url}`);
   }
+  // Any n8n workflow file can come here (an edited conversion, a copy from n8n without a name).
+  const name = typeof w.name === 'string' && w.name.trim() ? w.name : 'Workflow';
+  const { staticData } = w as { staticData?: unknown };
   const body = {
-    name: `${[...w.name].slice(0, 128 - ' (migrated)'.length).join('').trim()} (migrated)`,
-    nodes: w.nodes.map((n) => Object.fromEntries(Object.entries(n).filter(([k]) => NODE_FIELDS.includes(k)))),
+    name: `${[...name].slice(0, 128 - ' (migrated)'.length).join('').trim()} (migrated)`,
+    nodes: w.nodes.map((n) => pick(n, NODE_FIELDS)),
     connections: w.connections,
-    settings: { executionOrder: 'v1' },
+    settings: { executionOrder: 'v1', ...pick(w.settings, SETTINGS_FIELDS) },
+    ...(staticData && typeof staticData === 'object' ? { staticData } : {}),
   };
   const timeoutMs = opts.timeoutMs ?? 20_000;
   let res: Response;

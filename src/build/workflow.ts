@@ -12,6 +12,8 @@ export interface PlannedNode {
   type: string;
   typeVersion: number;
   parameters: Record<string, unknown>;
+  /** Parameters that name another node of the same step: built once the final node names are known. */
+  named?: (nameOf: (wanted: string) => string) => Record<string, unknown>;
   credentials?: N8nNode['credentials'];
   disabled?: boolean;
   onError?: N8nNode['onError'];

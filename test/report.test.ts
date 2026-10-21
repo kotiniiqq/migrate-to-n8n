@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import { convertMake, defaultOutputDir, writeResult } from '../src/convert.ts';
 import { renderMarkdown } from '../src/report/render.ts';
 import type { ConversionReport } from '../src/types.ts';
+import { stableText } from './helpers/golden.ts';
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/make/${name}.json`, import.meta.url), 'utf8'));
 
@@ -78,7 +79,7 @@ test('the default output folder is Documents/migrate-to-n8n unless MIGRATE_OUTPU
     delete process.env.MIGRATE_OUTPUT_DIR;
     assert.match(defaultOutputDir(), /Documents[\\/]migrate-to-n8n$/);
     process.env.MIGRATE_OUTPUT_DIR = '/tmp/x';
-    assert.equal(defaultOutputDir(), '/tmp/x');
+    assert.equal(defaultOutputDir(), join('/tmp/x'));
     process.env.MIGRATE_OUTPUT_DIR = '${user_config.output_dir}'; // an unfilled Claude Desktop setting
     assert.match(defaultOutputDir(), /Documents[\\/]migrate-to-n8n$/);
   } finally {
@@ -88,7 +89,7 @@ test('the default output folder is Documents/migrate-to-n8n unless MIGRATE_OUTPU
 });
 
 test('the Markdown report of a real conversion matches the reviewed golden text', () => {
-  const md = renderMarkdown(convertMake(fixture('basic-webhook-sheets')).report);
+  const md = stableText(renderMarkdown(convertMake(fixture('basic-webhook-sheets')).report));
   const file = new URL('./golden/make/basic-webhook-sheets.report.md', import.meta.url);
   if (process.env.UPDATE_GOLDEN || !existsSync(file)) writeFileSync(file, md);
   assert.equal(md, readFileSync(file, 'utf8'));

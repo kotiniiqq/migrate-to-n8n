@@ -42,7 +42,7 @@
     "n8n-types": "tsx scripts/fetch-n8n-types.ts",
     "corpus": "tsx scripts/corpus.ts",
     "e2e": "tsx e2e/import.ts && tsx e2e/run.ts",
-    "mcpb": "tsx scripts/build-mcpb.ts",
+    "mcpb": "npm run build && tsx scripts/build-mcpb.ts",
     "n8n-apps": "tsx scripts/gen-n8n-apps.ts",
     "readme": "tsx scripts/readme-blocks.ts",
     "prepublishOnly": "npm run build && npm test"

@@ -309,6 +309,7 @@
     "nextSteps": [
       "Finish 1 step by hand: it is disabled and marked ⚠, with a suggestion next to it.",
       "Check 2 steps marked \"review\".",
+      "Set the time zone in the workflow settings to the one your Zapier account used: dates, times and schedules here follow it (without it n8n uses the instance default, often America/New_York).",
       "Run the workflow once with test data, then activate (publish) it."
     ]
   }

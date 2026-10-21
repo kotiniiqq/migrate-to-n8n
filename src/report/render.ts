@@ -32,7 +32,7 @@ export function renderMarkdown(r: ConversionReport): string {
   out.push('## Steps', '', `| # | ${SOURCE[r.source]} step | n8n node | Status | What to check |`, '|---|---|---|---|---|');
   r.steps.forEach((s, i) => {
     const what = s.status === 'manual' ? [s.suggestion ?? '', ...s.notes] : s.notes;
-    out.push(`| ${i + 1} | ${cell(s.sourceLabel)} (\`${cell(s.sourceKey)}\`) | ${cell(s.n8nNodes.join(' → '))} | ${BADGE[s.status]} | ${cell(what.filter(Boolean).join(' ')) || '—'} |`);
+    out.push(`| ${i + 1} | ${cell(s.sourceLabel)} (\`${cell(s.sourceKey)}\`) | ${cell(s.n8nNodes.join(' → ')) || '—'} | ${BADGE[s.status]} | ${cell(what.filter(Boolean).join(' ')) || '—'} |`);
   });
   out.push('');
 

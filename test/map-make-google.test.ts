@@ -44,7 +44,8 @@ test('Sheets search rows: read, then a Filter for the Make conditions; later ste
   assert.equal(r.nodes[0].type, 'n8n-nodes-base.googleSheets');
   assert.equal(p(r.nodes[0]).operation, 'read');
   assert.equal(r.nodes[1].type, 'n8n-nodes-base.filter');
-  assert.equal(r.node.type, 'n8n-nodes-base.limit'); // Make returned at most 10 rows
+  assert.equal(r.node.type, 'n8n-nodes-base.code'); // Make returned at most 10 rows per search
+  assert.match(String(p(r.node).jsCode), /const max = 10;/);
   assert.equal(r.step.status, 'review');
   assert.match(String(r.readerNode && JSON.stringify(r.readerNode.parameters)), /\.item\.json\.row_number/);
   assert.match(JSON.stringify(r.readerNode!.parameters), /\.item\.json\['E'\]/);

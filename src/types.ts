@@ -26,13 +26,17 @@ export interface SourceStep {
   filterLabel?: string;
   /** Make error-handler directive, e.g. `builtin:Ignore`. */
   onError?: string;
-  /** Module keys of a Make error-handler route that does more than one directive. */
-  errorHandler?: string[];
+  /** Settings of that directive, e.g. Break's `count` of attempts. */
+  onErrorParams?: Record<string, unknown>;
+  /** Modules of a Make error-handler route that does more than one directive. */
+  errorHandler?: Array<{ id: string; key: string; label: string }>;
   connectionRef?: string;
   /** Output fields as the source labels them (Make module metadata), e.g. `0` → "Name (A)". */
   outputFields?: Array<{ name: string; label: string }>;
   /** Not connected to the rest of the workflow in the export (its parent step is missing). */
   detached?: boolean;
+  /** Problems the source itself marked on this step (Make designer messages, Zapier's issue flag); `serious` ones need a look. */
+  flagged?: Array<{ text: string; serious: boolean }>;
   /** Labels of the sub-fields of an input, e.g. the columns behind `values`. */
   inputFields?: Record<string, Array<{ name: string; label: string }>>;
 }
@@ -61,7 +65,8 @@ export interface N8nNode {
   typeVersion: number;
   position: [number, number];
   parameters: Record<string, unknown>;
-  credentials?: Record<string, { id: string; name: string }>;
+  /** Without an id until a credential is picked in n8n. */
+  credentials?: Record<string, { id?: string; name: string }>;
   disabled?: boolean;
   onError?: 'continueRegularOutput' | 'continueErrorOutput' | 'stopWorkflow';
   notes?: string;
