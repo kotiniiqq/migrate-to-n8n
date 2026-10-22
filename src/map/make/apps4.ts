@@ -288,3 +288,45 @@ register({
     return { nodes: [media, n8nNode('wait', `${ctx.step.label} (processing)`, { amount: 60, unit: 'seconds' }), publishMedia(ctx.step.label, account, ctx)], status: 'review', credential: GRAPH };
   },
 });
+
+// ---------- email (IMAP), Webflow ----------
+
+/** IMAP search criteria (node-imap format) for what Make's "Watch emails" filtered on. */
+function imapCriteria(p: Record<string, unknown>): unknown[] {
+  const criteria: unknown[] = [['UNSEEN', 'SEEN', 'ALL'].includes(str(p.criteria).toUpperCase()) ? str(p.criteria).toUpperCase() : 'UNSEEN'];
+  for (const [key, field] of [['FROM', 'from'], ['TO', 'to'], ['SUBJECT', 'subject'], ['TEXT', 'text']] as const) if (str(p[field])) criteria.push([key, str(p[field])]);
+  return criteria;
+}
+
+register({
+  source: 'make', key: 'email:TriggerNewEmail', label: 'Email Trigger (IMAP)',
+  build(ctx) {
+    const p = ctx.step.params;
+    const dynamic = ['from', 'to', 'subject', 'text', 'folder'].some((k) => str(p[k]).includes('{{'));
+    if (dynamic) ctx.note('A filter of this trigger used a formula; the IMAP trigger takes fixed values: set them in Options → Custom Email Rules.', true);
+    const all = str(p.criteria).toUpperCase() === 'ALL';
+    if (all) ctx.note('Make watched all emails from the moment the scenario started; with "ALL" the n8n trigger may also read older emails in the folder on its first run. Add ["SINCE", "<today>"] to Custom Email Rules, or use "UNSEEN".', true);
+    return {
+      nodes: [n8nNode('emailReadImap', ctx.step.label, {
+        mailbox: str(p.folder) || 'INBOX', postProcessAction: p.markSeen === true ? 'read' : 'nothing', format: 'simple',
+        options: { customEmailConfig: JSON.stringify(imapCriteria(p)) },
+      })],
+      status: dynamic || all ? 'review' : 'converted', credential: { app: 'IMAP', credentialType: 'imap' }, ref: appRef('Email Trigger (IMAP)'),
+    };
+  },
+});
+
+register({
+  source: 'make', key: 'webflow:updateItem', label: 'Webflow: Update Item',
+  build(ctx) {
+    const p = ctx.step.params;
+    const fields = Object.entries(p.fields && typeof p.fields === 'object' ? (p.fields as Record<string, unknown>) : {})
+      .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      .map(([fieldId, v]) => ({ fieldId, fieldValue: ctx.expr(typeof v === 'string' ? v : JSON.stringify(v)) }));
+    if (p.isDraft === true || p.isArchived === true) ctx.note('Make also set the item as draft or archived; the n8n Webflow node does not: change it in Webflow or with an HTTP Request.', true);
+    return {
+      nodes: [n8nNode('webflow', ctx.step.label, { resource: 'item', operation: 'update', siteId: ctx.expr(str(p.site_id)), collectionId: ctx.expr(str(p.collection_id)), itemId: ctx.expr(str(p.item_id)), live: false, fieldsUi: { fieldValues: fields } })],
+      status: p.isDraft === true || p.isArchived === true ? 'review' : 'converted', credential: { app: 'Webflow', credentialType: 'webflowOAuth2Api' }, ref: appRef('Webflow'),
+    };
+  },
+});

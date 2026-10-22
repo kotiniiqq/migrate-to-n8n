@@ -61,6 +61,8 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   xml: { type: 'n8n-nodes-base.xml', typeVersion: 1 },
   twitter: { type: 'n8n-nodes-base.twitter', typeVersion: 2 },
   facebookGraphApi: { type: 'n8n-nodes-base.facebookGraphApi', typeVersion: 1 },
+  emailReadImap: { type: 'n8n-nodes-base.emailReadImap', typeVersion: 2.1 },
+  webflow: { type: 'n8n-nodes-base.webflow', typeVersion: 2 },
 };
 
 // ---------- the mapping table ----------

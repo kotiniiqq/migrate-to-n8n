@@ -39,7 +39,7 @@ Measured on 2026-10-22 on the public Make blueprints and Zapier exports found on
 
 | Source | Workflows | Steps | ✅ Converted | ⚠️ To review | 🛠 Manual | Broken outputs | Time (median) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Make | 1,432 | 10,129 | 42.7% | 40.2% | 17.2% | 0 | 0.8 ms |
+| Make | 1,432 | 10,129 | 42.7% | 40.5% | 16.7% | 0 | 0.7 ms |
 | Zapier | 148 | 910 | 7% | 63.7% | 29.2% | 0 | 0.3 ms |
 <!-- corpus:end -->
 
@@ -135,7 +135,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 
 <!-- supported:start -->
 <details>
-<summary><b>Make</b>: 131 modules and steps convert automatically</summary>
+<summary><b>Make</b>: 135 modules and steps convert automatically</summary>
 
 | Module / step | Becomes in n8n |
 |---|---|
@@ -169,6 +169,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `dropbox:createShareLink` | HTTP Request (Dropbox API) |
 | `dropbox:uploadLargeFile` | Dropbox: Upload |
 | `email:ActionSendEmail` | Send Email (SMTP) |
+| `email:TriggerNewEmail` | Email Trigger (IMAP) |
 | `facebook-pages:CreatePost` | Facebook Graph API: Page Post |
 | `facebook-pages:CreatePostWithPhotos` | Facebook Graph API: Page Photo Post |
 | `gateway:CustomWebHook` | Webhook |
@@ -224,6 +225,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `linkedin:CreateCompanyPost` | LinkedIn: Create Post |
 | `linkedin:CreatePost` | LinkedIn: Create Post |
 | `linkedin:ShareImage` | LinkedIn: Create Post |
+| `manychat:SetSubscriberCustomField` | HTTP Request (ManyChat API) |
 | `markdown:Compile` | Markdown → HTML |
 | `notion:createAPage` | Notion: Create Database Page |
 | `notion:updateADatabaseItem` | Notion: Update Database Page |
@@ -268,6 +270,8 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `util:Sleep` | Wait |
 | `util:Switcher` | Edit Fields |
 | `util:TextAggregator` | Aggregate + Edit Fields |
+| `webflow:publishAnItem` | HTTP Request (Webflow API) |
+| `webflow:updateItem` | Webflow: Update Item |
 | `whatsapp-business-cloud:sendMessage` | WhatsApp: Send Message |
 | `xml:ParseXML` | XML (to JSON) |
 

@@ -157,3 +157,30 @@ test('Facebook page posts and Instagram photo and reel posts go through the Grap
   assert.equal(reel.nodes[1].credentials, undefined);
   assert.ok(p(reel.nodes[0]).options.queryParameters.parameter.some((q: any) => q.name === 'media_type' && q.value === 'REELS'));
 });
+
+test('Email trigger (IMAP): the start of the workflow, with Make\'s filters as IMAP search rules', () => {
+  const e = oneMake('email:TriggerNewEmail', {}, { first: true, parameters: { folder: 'INBOX', criteria: 'ALL', from: 'nick@example.com', subject: 'New lead', to: '', text: '', markSeen: false, maxResults: 1 } });
+  assert.equal(e.node.type, 'n8n-nodes-base.emailReadImap');
+  assert.deepEqual(JSON.parse(p(e.node).options.customEmailConfig), ['ALL', ['FROM', 'nick@example.com'], ['SUBJECT', 'New lead']]);
+  assert.equal(p(e.node).postProcessAction, 'nothing');
+  assert.equal(e.result.workflow.nodes.filter((n) => /scheduleTrigger|manualTrigger/.test(n.type)).length, 0, 'no extra trigger in front of it');
+  assert.equal(e.step.status, 'review'); // "ALL" may read older emails on the first run
+  const unseen = oneMake('email:TriggerNewEmail', {}, { first: true, parameters: { folder: 'INBOX', criteria: 'UNSEEN', from: 'a@b.c' } });
+  assert.equal(unseen.step.status, 'converted');
+  const dyn = oneMake('email:TriggerNewEmail', {}, { first: true, parameters: { folder: 'INBOX', criteria: 'UNSEEN', from: '{{1.x}}', markSeen: true } });
+  assert.equal(p(dyn.node).postProcessAction, 'read');
+  assert.equal(dyn.step.status, 'review');
+});
+
+test('Webflow item update and publish, ManyChat custom field', () => {
+  const w = oneMake('webflow:updateItem', { site_id: 's1', collection_id: 'c1', item_id: '{{1.id}}', select: 'list', fields: { name: '{{1.name}}', 'logo-url': '{{1.logo}}', empty: '' } });
+  assert.equal(w.node.type, 'n8n-nodes-base.webflow');
+  assert.deepEqual(p(w.node).fieldsUi.fieldValues.map((f: any) => f.fieldId), ['name', 'logo-url']);
+  assert.equal(w.step.status, 'converted');
+  const pub = oneMake('webflow:publishAnItem', { site_id: 's1', collection_id: 'c1', itemIds: '{{1.id}}' });
+  assert.equal(p(pub.node).url, 'https://api.webflow.com/v2/collections/c1/items/publish');
+  assert.match(String(p(pub.node).jsonBody), /itemIds: \[\]\.concat\(/);
+  const m = oneMake('manychat:SetSubscriberCustomField', { cFieldId: 12587098, cFieldValue: '{{1.v}}', subscriberId: '{{1.sub}}' });
+  assert.equal(p(m.node).url, 'https://api.manychat.com/fb/subscriber/setCustomField');
+  assert.match(String(p(m.node).jsonBody), /field_id: Number\("12587098"\)/);
+});

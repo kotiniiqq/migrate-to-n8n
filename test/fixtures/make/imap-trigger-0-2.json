@@ -1,0 +1,8 @@
+{
+  "name": "New modules in 0.2: email trigger",
+  "flow": [
+    { "id": 1, "module": "email:TriggerNewEmail", "version": 7, "parameters": { "folder": "INBOX", "criteria": "UNSEEN", "from": "leads@example.com", "subject": "", "to": "", "text": "", "markSeen": true, "maxResults": 1 }, "mapper": {}, "metadata": { "designer": { "x": 0, "y": 0 } } },
+    { "id": 2, "module": "util:SetVariable2", "version": 1, "mapper": { "name": "subject", "scope": "roundtrip", "value": "{{1.subject}}" }, "metadata": { "designer": { "x": 300, "y": 0 } } }
+  ],
+  "metadata": { "instant": false, "version": 1 }
+}

@@ -381,6 +381,79 @@
       }
     },
     {
+      "id": 22,
+      "module": "webflow:updateItem",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "site_id": "s1",
+        "collection_id": "c1",
+        "item_id": "{{1.id}}",
+        "select": "list",
+        "fields": {
+          "name": "{{1.name}}"
+        }
+      },
+      "metadata": {
+        "designer": {
+          "x": 6600,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 23,
+      "module": "webflow:publishAnItem",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "site_id": "s1",
+        "collection_id": "c1",
+        "itemIds": "{{1.id}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 6900,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 24,
+      "module": "manychat:SetSubscriberCustomField",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "cFieldId": 123,
+        "cFieldValue": "{{1.v}}",
+        "subscriberId": "{{1.sub}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 7200,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 25,
+      "module": "util:FunctionAggregator2",
+      "version": 1,
+      "parameters": {
+        "fn": "sum",
+        "feeder": 1
+      },
+      "mapper": {
+        "value": "{{1.amount}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 7500,
+          "y": 0
+        }
+      }
+    },
+    {
       "id": 17,
       "module": "csv:ParseCSV",
       "version": 1,
@@ -393,7 +466,7 @@
       },
       "metadata": {
         "designer": {
-          "x": 6600,
+          "x": 7800,
           "y": 0
         }
       }

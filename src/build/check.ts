@@ -17,7 +17,8 @@ function containsPlaceholder(value: unknown): boolean {
   return false;
 }
 
-const isTrigger = (type: string) => /(trigger|webhook)$/i.test(type) && type !== 'n8n-nodes-base.respondToWebhook';
+// The IMAP email trigger is the one trigger whose type name does not say so.
+const isTrigger = (type: string) => (/(trigger|webhook)$/i.test(type) && type !== 'n8n-nodes-base.respondToWebhook') || type === 'n8n-nodes-base.emailReadImap';
 
 export function checkWorkflow(w: unknown): CheckIssue[] {
   const wf = w as { nodes?: unknown; connections?: unknown };

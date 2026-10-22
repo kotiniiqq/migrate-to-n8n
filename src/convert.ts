@@ -47,7 +47,8 @@ interface StepOut {
 }
 
 const NODE_SCHEDULE = 'n8n-nodes-base.scheduleTrigger';
-const isTriggerType = (type: string) => /(trigger|webhook)$/i.test(type) && !/respondToWebhook$/.test(type);
+// The IMAP email trigger is the one trigger whose type name does not say so.
+const isTriggerType = (type: string) => (/(trigger|webhook)$/i.test(type) && !/respondToWebhook$/.test(type)) || type === 'n8n-nodes-base.emailReadImap';
 
 /** The scenario name made URL-safe, with an end that stays the same when the same scenario is converted again (the
  *  senders keep their URL) but differs between two workflows of the same name ("Untitled Zap"), or n8n refuses to

@@ -147,6 +147,23 @@ register({
 });
 
 register({
+  source: 'make', key: 'webflow:publishAnItem', label: 'HTTP Request (Webflow API)',
+  build(ctx) {
+    const p = ctx.step.params;
+    const ids = Array.isArray(p.itemIds) ? `[${p.itemIds.map((v) => ctx.js(str(v))).join(', ')}]` : `[].concat(${ctx.js(str(p.itemIds))})`;
+    return apiCall(ctx, 'Webflow', 'POST', urlWith('https://api.webflow.com/v2/collections/', ctx.js(str(p.collection_id)), '/items/publish'), `={{ JSON.stringify({ itemIds: ${ids} }) }}`);
+  },
+});
+
+register({
+  source: 'make', key: 'manychat:SetSubscriberCustomField', label: 'HTTP Request (ManyChat API)',
+  build(ctx) {
+    const p = ctx.step.params;
+    return apiCall(ctx, 'ManyChat', 'POST', 'https://api.manychat.com/fb/subscriber/setCustomField', `={{ JSON.stringify({ subscriber_id: Number(${ctx.js(str(p.subscriberId))}), field_id: Number(${ctx.js(str(p.cFieldId))}), field_value: ${ctx.js(str(p.cFieldValue))} }) }}`);
+  },
+});
+
+register({
   source: 'make', key: 'typeform:ListResponses', label: 'HTTP Request (Typeform API)',
   build(ctx) {
     const p = ctx.step.params;

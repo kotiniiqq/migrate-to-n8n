@@ -5,15 +5,15 @@
     "steps": 10129,
     "share": {
       "converted": 42.7,
-      "review": 40.2,
-      "manual": 17.2
+      "review": 40.5,
+      "manual": 16.7
     },
-    "convertedOrReview": 82.8,
+    "convertedOrReview": 83.3,
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.8164999999999054,
-      "max": 8.799300000000017
+      "p50": 0.7456999999999425,
+      "max": 8.801099999999991
     }
   },
   "zapier": {
@@ -28,8 +28,8 @@
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.3362209999999959,
-      "max": 5.226800000000367
+      "p50": 0.27187399999999795,
+      "max": 4.9013999999997395
     }
   }
 }
