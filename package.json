@@ -1,6 +1,6 @@
 {
   "name": "migrate-to-n8n",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Convert Make and Zapier automations into n8n workflows, with a report of what to check. MCP server and CLI.",
   "mcpName": "io.github.kotiniiqq/migrate-to-n8n",
   "author": "Kyrylo Kalashnyk <kotiniiqq@gmail.com>",
