@@ -45,6 +45,10 @@ test('six tools without n8n settings, seven with them; every tool has a title an
     assert.ok(t.title, t.name);
     assert.ok(t.annotations, t.name);
     assert.ok((t.description ?? '').length > 40, t.name);
+    // Agents pick and fill tools from these texts (Glama scores them too): every parameter says what it takes.
+    for (const [param, schema] of Object.entries(t.inputSchema.properties ?? {})) {
+      assert.ok(((schema as { description?: string }).description ?? '').length > 15, `${t.name}.${param}`);
+    }
   }
   const upload = tools.find((t) => t.name === 'upload_to_n8n')!;
   assert.equal(upload.annotations!.openWorldHint, true);
