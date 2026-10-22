@@ -1,0 +1,10 @@
+{
+  "name": "E2E numeric aggregator",
+  "flow": [
+    { "id": 1, "module": "gateway:CustomWebHook", "version": 1, "parameters": { "hook": 1 }, "mapper": {}, "metadata": { "designer": { "x": 0, "y": 0 } } },
+    { "id": 2, "module": "builtin:BasicFeeder", "version": 1, "mapper": { "array": "{{1.items}}" }, "metadata": { "designer": { "x": 300, "y": 0 } } },
+    { "id": 3, "module": "util:FunctionAggregator2", "version": 1, "parameters": { "fn": "sum", "feeder": 2 }, "mapper": { "value": "{{2.price}}" }, "metadata": { "designer": { "x": 600, "y": 0 } } },
+    { "id": 4, "module": "gateway:WebhookRespond", "version": 1, "mapper": { "status": "200", "body": "total {{3.result}}" }, "metadata": { "designer": { "x": 900, "y": 0 } } }
+  ],
+  "metadata": { "instant": true, "version": 1 }
+}

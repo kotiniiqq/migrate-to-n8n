@@ -118,3 +118,42 @@ test('OpenAI "ask anything", OpenRouter, Typeform responses, Sellsy API calls', 
   assert.match(String(p(s.node).url), /^https:\/\/api\.sellsy\.com\/v2\/contacts/);
   assert.equal(s.step.status, 'review');
 });
+
+test('Numeric aggregator: sum, average, min, max and count of a value over the items', () => {
+  const run = (fn: string, rows: unknown[]) => {
+    const a = oneMake('util:FunctionAggregator2', { value: '{{1.amount}}' }, { parameters: { fn, feeder: 1 } });
+    assert.deepEqual(a.nodes.map((n) => n.type), ['n8n-nodes-base.set', 'n8n-nodes-base.aggregate', 'n8n-nodes-base.set']);
+    const value = String(p(a.node).assignments.assignments[0].value);
+    return { result: new Function('$json', `return ${value.slice(4, -3)}`)({ rows }), status: a.step.status };
+  };
+  assert.deepEqual(run('sum', ['1', 2.5, '', null, 'x']), { result: 3.5, status: 'converted' });
+  assert.equal(run('avg', [1, 2, 3]).result, 2);
+  assert.equal(run('min', [4, '2', 9]).result, 2);
+  assert.equal(run('max', [4, '2', 9]).result, 9);
+  assert.equal(run('count', [4, '', 9]).result, 3);
+  assert.equal(run('median', [1]).status, 'review');
+});
+
+test('Facebook page posts and Instagram photo and reel posts go through the Graph API', () => {
+  const post = oneMake('facebook-pages:CreatePost', { page_id: '117', message: '{{1.text}}', link: '{{1.url}}' });
+  assert.equal(post.node.type, 'n8n-nodes-base.facebookGraphApi');
+  assert.equal(p(post.node).edge, 'feed');
+  assert.deepEqual(p(post.node).options.queryParameters.parameter.map((q: any) => q.name), ['message', 'link']);
+  assert.ok(post.node.credentials?.facebookGraphApi);
+
+  const photo = oneMake('facebook-pages:CreatePostWithPhotos', { page_id: '117', message: 'Hi', photos: [{ url: '{{1.img}}', type: 'url' }, { url: 'b', type: 'url' }] });
+  assert.equal(p(photo.node).edge, 'photos');
+  assert.match(photo.step.notes.join(' '), /posts the first/);
+
+  const ig = oneMake('instagram-business:CreatePostPhoto', { accountId: '1784', image_url: '{{1.img}}', caption: '{{1.text}}' });
+  assert.deepEqual(ig.nodes.map((n) => p(n).edge), ['media', 'media_publish']);
+  assert.equal(p(ig.nodes[1]).node, '1784');
+  assert.equal(p(ig.nodes[1]).options.queryParameters.parameter[0].value, '={{ $json.id }}');
+  for (const n of ig.nodes) assert.ok(n.credentials?.facebookGraphApi, `${n.name} has the credential`);
+  assert.equal(ig.result.report.credentials[0].nodes.length, 2);
+
+  const reel = oneMake('instagram-business:CreateAReelPost', { accountId: '1784', video_url: '{{1.video}}', caption: 'c', share_to_feed: true });
+  assert.deepEqual(reel.nodes.map((n) => n.type), ['n8n-nodes-base.facebookGraphApi', 'n8n-nodes-base.wait', 'n8n-nodes-base.facebookGraphApi']);
+  assert.equal(reel.nodes[1].credentials, undefined);
+  assert.ok(p(reel.nodes[0]).options.queryParameters.parameter.some((q: any) => q.name === 'media_type' && q.value === 'REELS'));
+});

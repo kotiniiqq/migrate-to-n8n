@@ -307,6 +307,80 @@
       }
     },
     {
+      "id": 18,
+      "module": "facebook-pages:CreatePost",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "page_id": "117",
+        "message": "{{1.text}}",
+        "link": "{{1.url}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 5400,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 19,
+      "module": "facebook-pages:CreatePostWithPhotos",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "page_id": "117",
+        "message": "Hi",
+        "photos": [
+          {
+            "url": "{{1.img}}",
+            "type": "url"
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 5700,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 20,
+      "module": "instagram-business:CreatePostPhoto",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "accountId": "1784",
+        "image_url": "{{1.img}}",
+        "caption": "{{1.text}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 6000,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 21,
+      "module": "instagram-business:CreateAReelPost",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "accountId": "1784",
+        "video_url": "{{1.video}}",
+        "caption": "c",
+        "share_to_feed": true
+      },
+      "metadata": {
+        "designer": {
+          "x": 6300,
+          "y": 0
+        }
+      }
+    },
+    {
       "id": 17,
       "module": "csv:ParseCSV",
       "version": 1,
@@ -319,7 +393,7 @@
       },
       "metadata": {
         "designer": {
-          "x": 4800,
+          "x": 6600,
           "y": 0
         }
       }

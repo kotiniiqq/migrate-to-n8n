@@ -39,7 +39,7 @@ Measured on 2026-10-22 on the public Make blueprints and Zapier exports found on
 
 | Source | Workflows | Steps | ✅ Converted | ⚠️ To review | 🛠 Manual | Broken outputs | Time (median) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Make | 1,432 | 10,129 | 42.6% | 39.5% | 17.9% | 0 | 0.7 ms |
+| Make | 1,432 | 10,129 | 42.7% | 40.2% | 17.2% | 0 | 0.8 ms |
 | Zapier | 148 | 910 | 7% | 63.7% | 29.2% | 0 | 0.3 ms |
 <!-- corpus:end -->
 
@@ -135,7 +135,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 
 <!-- supported:start -->
 <details>
-<summary><b>Make</b>: 126 modules and steps convert automatically</summary>
+<summary><b>Make</b>: 131 modules and steps convert automatically</summary>
 
 | Module / step | Becomes in n8n |
 |---|---|
@@ -169,6 +169,8 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `dropbox:createShareLink` | HTTP Request (Dropbox API) |
 | `dropbox:uploadLargeFile` | Dropbox: Upload |
 | `email:ActionSendEmail` | Send Email (SMTP) |
+| `facebook-pages:CreatePost` | Facebook Graph API: Page Post |
+| `facebook-pages:CreatePostWithPhotos` | Facebook Graph API: Page Photo Post |
 | `gateway:CustomWebHook` | Webhook |
 | `gateway:WebhookRespond` | Respond to Webhook |
 | `gemini-ai:createACompletionGeminiPro` | Google Gemini: Message a Model |
@@ -212,6 +214,8 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `http:ActionSendDataBasicAuth` | HTTP Request (basic auth) |
 | `http:DownloadFile` | HTTP Request (file) |
 | `http:MakeRequest` | HTTP Request |
+| `instagram-business:CreateAReelPost` | Facebook Graph API: Instagram reel + publish |
+| `instagram-business:CreatePostPhoto` | Facebook Graph API: Instagram media + publish |
 | `json:AggregateToJSON` | Aggregate + Edit Fields |
 | `json:CreateJSON` | Edit Fields |
 | `json:ParseJSON` | Edit Fields (JSON) |
@@ -253,6 +257,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `typeform:ListResponses` | HTTP Request (Typeform API) |
 | `typeform:WatchEventsWithResponses` | Typeform Trigger |
 | `util:ComposeTransformer` | Edit Fields |
+| `util:FunctionAggregator2` | Aggregate + Edit Fields |
 | `util:FunctionIncrement` | Code (counter) |
 | `util:FunctionSleep` | Wait |
 | `util:GetVariable2` | Edit Fields |

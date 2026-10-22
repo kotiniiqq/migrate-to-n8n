@@ -219,3 +219,72 @@ register({
     return via('supabase:createARow', ctx, { table: p.table, ...data });
   },
 });
+
+// ---------- Facebook Pages and Instagram (Graph API) ----------
+
+const GRAPH = { app: 'Facebook Graph API', credentialType: 'facebookGraphApi' };
+const PAGE_TOKEN_NOTE = 'Use a Page access token (not a user token) in the Facebook Graph API credential: Make used the Page connection.';
+
+/** One Graph API POST: `node`/`edge` with query parameters (empty values left out). */
+function graphPost(name: string, node: unknown, edge: string, query: Array<[string, unknown]>, ctx: MapCtx) {
+  const parameter = query.filter(([, v]) => str(v) !== '').map(([k, v]) => ({ name: k, value: typeof v === 'boolean' ? String(v) : ctx.expr(str(v)) }));
+  return n8nNode('facebookGraphApi', name, { hostUrl: 'graph.facebook.com', httpRequestMethod: 'POST', graphApiVersion: '', node: ctx.expr(str(node)), edge, options: { queryParameters: { parameter } } });
+}
+
+register({
+  source: 'make', key: 'facebook-pages:CreatePost', label: 'Facebook Graph API: Page Post',
+  build(ctx) {
+    const p = ctx.step.params;
+    ctx.note(PAGE_TOKEN_NOTE, true);
+    if (str(p.date)) ctx.note('Make scheduled the post: add "published" = false and "scheduled_publish_time" (a Unix time) to the query parameters.', true);
+    return { nodes: [graphPost(ctx.step.label, p.page_id, 'feed', [['message', p.message], ['link', p.link]], ctx)], status: 'review', credential: GRAPH };
+  },
+});
+
+register({
+  source: 'make', key: 'facebook-pages:CreatePostWithPhotos', label: 'Facebook Graph API: Page Photo Post',
+  build(ctx) {
+    const p = ctx.step.params;
+    const photos = (Array.isArray(p.photos) ? p.photos : []) as Array<Record<string, unknown>>;
+    ctx.note(PAGE_TOKEN_NOTE, true);
+    if (photos.length > 1) ctx.note(`Make posted ${photos.length} photos in one post; this step posts the first. For all of them, upload each with "published" = false and attach their ids to a feed post ("attached_media").`, true);
+    if (photos[0] && photos[0].type !== 'url') ctx.note('Make uploaded the photo as a file; the Graph API step here sends its URL: switch on "Send Binary File" for a file.', true);
+    if (str(p.date)) ctx.note('Make scheduled the post: add "published" = false and "scheduled_publish_time" (a Unix time) to the query parameters.', true);
+    return { nodes: [graphPost(ctx.step.label, p.page_id, 'photos', [['url', photos[0]?.url], ['message', p.message]], ctx)], status: 'review', credential: GRAPH };
+  },
+});
+
+/** Publish the media container the step before created (its id arrives as $json.id; Wait passes it on). */
+function publishMedia(name: string, account: unknown, ctx: MapCtx) {
+  return n8nNode('facebookGraphApi', name, {
+    hostUrl: 'graph.facebook.com', httpRequestMethod: 'POST', graphApiVersion: '', node: ctx.expr(str(account)), edge: 'media_publish',
+    options: { queryParameters: { parameter: [{ name: 'creation_id', value: '={{ $json.id }}' }] } },
+  });
+}
+
+register({
+  source: 'make', key: 'instagram-business:CreatePostPhoto', label: 'Facebook Graph API: Instagram media + publish',
+  build(ctx) {
+    const p = ctx.step.params;
+    const account = p.accountId ?? p.account;
+    ctx.note('Instagram publishes in two calls (create the media, then publish it); the Facebook Graph API credential needs the instagram_content_publish permission.', true);
+    return {
+      nodes: [
+        graphPost(`${ctx.step.label} (media)`, account, 'media', [['image_url', p.image_url], ['caption', p.caption], ['location_id', p.location_id]], ctx),
+        publishMedia(ctx.step.label, account, ctx),
+      ],
+      status: 'review', credential: GRAPH,
+    };
+  },
+});
+
+register({
+  source: 'make', key: 'instagram-business:CreateAReelPost', label: 'Facebook Graph API: Instagram reel + publish',
+  build(ctx) {
+    const p = ctx.step.params;
+    const account = p.accountId ?? p.account;
+    ctx.note('Instagram has to process the video before it can be published: this waits 60 seconds. If publishing fails with "media is not ready", wait longer, or check the media status_code first.', true);
+    const media = graphPost(`${ctx.step.label} (media)`, account, 'media', [['media_type', 'REELS'], ['video_url', p.video_url], ['caption', p.caption], ['share_to_feed', p.share_to_feed], ['thumb_offset', p.thumb_offset], ['location_id', p.location_id]], ctx);
+    return { nodes: [media, n8nNode('wait', `${ctx.step.label} (processing)`, { amount: 60, unit: 'seconds' }), publishMedia(ctx.step.label, account, ctx)], status: 'review', credential: GRAPH };
+  },
+});

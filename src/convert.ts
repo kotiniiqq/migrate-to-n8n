@@ -228,10 +228,14 @@ export function convertGraph(g: SourceGraph, d: Dialect): ConversionResult {
   const addCredential = (res: MapOutput, nodes: PlannedNode[], names: string[]) => {
     const at = Math.max(0, res.nodes.map((n) => !HELPER_TYPES.has(n.type)).lastIndexOf(true));
     const { app, credentialType } = res.credential!;
-    nodes[at].credentials = { ...nodes[at].credentials, [credentialType]: { name: `${app} account` } };
     const k = `${app}|${credentialType}`;
     const c = credentials.get(k) ?? { ...res.credential!, nodes: [] };
-    c.nodes.push(names[at]);
+    // A step that calls the app twice (Instagram: create the media, then publish it) needs it on both nodes.
+    res.nodes.forEach((n, i) => {
+      if (n.type !== res.nodes[at].type) return;
+      nodes[i].credentials = { ...nodes[i].credentials, [credentialType]: { name: `${app} account` } };
+      c.nodes.push(names[i]);
+    });
     credentials.set(k, c);
   };
 

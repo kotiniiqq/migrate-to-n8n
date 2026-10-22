@@ -339,6 +339,35 @@ register({
   },
 });
 
+/** Make "Numeric aggregator": SUM, AVG, MIN, MAX or COUNT of one value over the bundles, as `result`. */
+const NUMERIC: Record<string, string> = {
+  sum: 'n.reduce((a, b) => a + b, 0)',
+  avg: '(n.length ? n.reduce((a, b) => a + b, 0) / n.length : 0)',
+  min: '(n.length ? Math.min(...n) : 0)',
+  max: '(n.length ? Math.max(...n) : 0)',
+  count: '$json.rows.length',
+};
+
+register({
+  source: 'make', key: 'util:FunctionAggregator2', label: 'Aggregate + Edit Fields',
+  build(ctx) {
+    const p = ctx.step.params;
+    const fn = str(p.fn).toLowerCase();
+    const formula = NUMERIC[fn];
+    if (!formula) ctx.note(`Make computed "${str(p.fn)}" of the values; this step sums them: change the formula in "${ctx.step.label}".`, true);
+    perBundleNote(ctx);
+    const result = `={{ (() => { const n = $json.rows.filter((v) => v !== '' && v !== null && v !== undefined).map(Number).filter((v) => Number.isFinite(v)); return ${formula ?? NUMERIC.sum}; })() }}`;
+    return {
+      nodes: [
+        n8nNode('set', `${ctx.step.label} (values)`, { mode: 'manual', assignments: { assignments: [assignment('value', ctx.expr(str(p.value)))] }, options: {} }),
+        n8nNode('aggregate', `${ctx.step.label} (collect)`, { aggregate: 'aggregateIndividualFields', fieldsToAggregate: { fieldToAggregate: [{ fieldToAggregate: 'value', renameField: true, outputFieldName: 'rows' }] }, options: { keepMissing: true } }),
+        n8nNode('set', ctx.step.label, setFields([{ name: 'result', value: result, type: 'number' }])),
+      ],
+      status: formula ? 'converted' : 'review',
+    };
+  },
+});
+
 register({
   source: 'make', key: 'util:FunctionSleep', label: 'Wait',
   build(ctx) {

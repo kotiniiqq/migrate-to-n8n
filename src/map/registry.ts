@@ -60,6 +60,7 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   limit: { type: 'n8n-nodes-base.limit', typeVersion: 1 },
   xml: { type: 'n8n-nodes-base.xml', typeVersion: 1 },
   twitter: { type: 'n8n-nodes-base.twitter', typeVersion: 2 },
+  facebookGraphApi: { type: 'n8n-nodes-base.facebookGraphApi', typeVersion: 1 },
 };
 
 // ---------- the mapping table ----------

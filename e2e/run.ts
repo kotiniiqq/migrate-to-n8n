@@ -48,6 +48,10 @@ const CASES: Case[] = [
       expect: (t) => assert.equal(t, 'pen, blue x2, paper x10 | Anna'),
     }],
   },
+  {
+    fixture: 'test/e2e/make-numeric.json',
+    calls: [{ body: { items: [{ price: 1.5 }, { price: '2' }, { price: 10 }] }, status: 200, expect: (t) => assert.equal(t, 'total 13.5') }],
+  },
 ];
 
 let failures = 0;
