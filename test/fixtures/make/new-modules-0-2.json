@@ -1,0 +1,332 @@
+{
+  "name": "New modules in 0.2",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": 1,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "google-calendar:deleteAnEvent",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "calendar": "primary",
+        "event": "{{1.eventId}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "google-docs:getADocument",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "select": "dropdown",
+        "document": "/1Folder/1DocId"
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 4,
+      "module": "google-sheets:createSpreadsheet",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "properties": {
+          "title": "{{1.name}} sheet"
+        },
+        "sheets": [
+          {
+            "properties": {
+              "title": "Leads"
+            }
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 5,
+      "module": "google-email:ActionCreateDraft",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "to": [
+          "{{1.email}}"
+        ],
+        "cc": [
+          "boss@example.com"
+        ],
+        "bcc": [],
+        "subject": "Hi",
+        "html": "<p>Hello {{1.name}}</p>",
+        "attachments": []
+      },
+      "metadata": {
+        "designer": {
+          "x": 1200,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 6,
+      "module": "notion:updateADatabaseItem",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "select": "map",
+        "page": "{{1.pageId}}",
+        "fields": [
+          {
+            "key": "Name",
+            "type": "title",
+            "value": "{{1.name}}"
+          },
+          {
+            "key": "Amount",
+            "type": "number",
+            "value": "{{1.amount}}"
+          },
+          {
+            "key": "Due",
+            "type": "date",
+            "date": {
+              "start": "{{1.due}}"
+            }
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 1500,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 7,
+      "module": "datastore:DeleteRecord",
+      "version": 1,
+      "parameters": {
+        "datastore": 1
+      },
+      "mapper": {
+        "key": "{{1.id}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 1800,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 8,
+      "module": "util:Sleep",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "delay": "2"
+      },
+      "metadata": {
+        "designer": {
+          "x": 2100,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 9,
+      "module": "xml:ParseXML",
+      "version": 1,
+      "parameters": {
+        "type": "",
+        "preserveNumbersAsText": false
+      },
+      "mapper": {
+        "xml": "{{1.xml}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 2400,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 10,
+      "module": "twitter:createATweet",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "text": "{{1.name}} joined"
+      },
+      "metadata": {
+        "designer": {
+          "x": 2700,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 11,
+      "module": "apify:runActorNew",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "actorId": "Abc123",
+        "runSync": false,
+        "actor_search_type": "user",
+        "inputBodyAbc123": "{\"q\": \"{{1.name}}\"}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 3000,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 12,
+      "module": "supabase:ActionCreateARecord",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "table": "clients",
+        "data": {
+          "first_name": "{{1.name}}",
+          "status": "Active"
+        }
+      },
+      "metadata": {
+        "designer": {
+          "x": 3300,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 13,
+      "module": "openai-gpt-3:askAnything",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "model": "gpt-4o-mini",
+        "textPrompt": "Summarize {{1.text}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 3600,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 14,
+      "module": "open-router:createAChatCompletion",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "model": "openai/gpt-4o",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hi {{1.name}}"
+          }
+        ],
+        "temperature": "0.2",
+        "json_mode": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 3900,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 15,
+      "module": "typeform:ListResponses",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "formId": "VWG9z2uR",
+        "limit": "1",
+        "completed": true
+      },
+      "metadata": {
+        "designer": {
+          "x": 4200,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 16,
+      "module": "sellsy:makeApiCall",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "url": "/v2/contacts",
+        "method": "GET"
+      },
+      "metadata": {
+        "designer": {
+          "x": 4500,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 17,
+      "module": "csv:ParseCSV",
+      "version": 1,
+      "parameters": {
+        "csvContainsHeaders": true,
+        "delimiterType": "comma"
+      },
+      "mapper": {
+        "csv": "{{1.csv}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 4800,
+          "y": 0
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1
+  }
+}

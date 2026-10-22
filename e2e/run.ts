@@ -39,6 +39,15 @@ const CASES: Case[] = [
     fixture: 'test/e2e/make-iterator.json',
     calls: [{ body: { items: [{ name: 'a', price: 1 }, { name: 'b', price: 2.5 }] }, status: 200, expect: (t) => assert.equal(t, 'a: 2, b: 5') }],
   },
+  {
+    // Parse CSV gives one item per row (a quoted field keeps its comma); Parse XML reads elements by name.
+    fixture: 'test/e2e/make-csv-xml.json',
+    calls: [{
+      body: { csv: 'name,qty\n"pen, blue",2\npaper,10\n', xml: '<order id="7"><customer>Anna</customer></order>' },
+      status: 200,
+      expect: (t) => assert.equal(t, 'pen, blue x2, paper x10 | Anna'),
+    }],
+  },
 ];
 
 let failures = 0;

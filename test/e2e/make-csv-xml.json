@@ -1,0 +1,11 @@
+{
+  "name": "E2E CSV and XML",
+  "flow": [
+    { "id": 1, "module": "gateway:CustomWebHook", "version": 1, "parameters": { "hook": 1 }, "mapper": {}, "metadata": { "designer": { "x": 0, "y": 0 } } },
+    { "id": 2, "module": "csv:ParseCSV", "version": 1, "parameters": { "csvContainsHeaders": true, "delimiterType": "comma", "relax": false }, "mapper": { "csv": "{{1.csv}}" }, "metadata": { "designer": { "x": 300, "y": 0 } } },
+    { "id": 3, "module": "builtin:BasicAggregator", "version": 1, "parameters": { "feeder": 2 }, "mapper": { "line": "{{2.name}} x{{2.qty}}" }, "metadata": { "designer": { "x": 600, "y": 0 } } },
+    { "id": 4, "module": "xml:ParseXML", "version": 1, "parameters": { "type": "", "preserveNumbersAsText": false }, "mapper": { "xml": "{{1.xml}}" }, "metadata": { "designer": { "x": 900, "y": 0 } } },
+    { "id": 5, "module": "gateway:WebhookRespond", "version": 1, "mapper": { "status": "200", "body": "{{join(map(3.array; \"line\"); \", \")}} | {{4.order.customer}}" }, "metadata": { "designer": { "x": 1200, "y": 0 } } }
+  ],
+  "metadata": { "instant": true, "version": 1 }
+}
