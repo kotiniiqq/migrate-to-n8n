@@ -102,9 +102,9 @@ test('"Make an API call" modules of any app → HTTP Request with the method, pa
   assert.equal(known.node.type, 'n8n-nodes-base.httpRequest');
   assert.equal(p(known.node).url, 'https://api.airtable.com/v0/appX/tblY');
   assert.equal(known.step.status, 'review');
-  const unknown = oneMake('sellsy:makeApiCall', { url: '/v2/contacts/search', method: 'POST', body: '{"a": 1}', headers: [] });
+  const unknown = oneMake('mailercloud:makeApiCall', { url: '/v1/contacts/search', method: 'POST', body: '{"a": 1}', headers: [] });
   assert.equal(unknown.node.disabled, true);
-  assert.equal(p(unknown.node).url, 'https://REPLACE-ME.example/v2/contacts/search');
+  assert.equal(p(unknown.node).url, 'https://REPLACE-ME.example/v1/contacts/search');
   assert.equal(unknown.step.status, 'manual');
   assert.match(unknown.step.suggestion!, /base URL/);
 });

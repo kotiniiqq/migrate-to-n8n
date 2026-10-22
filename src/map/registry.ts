@@ -58,6 +58,8 @@ export const NODE: Record<string, { type: string; typeVersion: number }> = {
   formTrigger: { type: 'n8n-nodes-base.formTrigger', typeVersion: 2.3 },
   linear: { type: 'n8n-nodes-base.linear', typeVersion: 1.1 },
   limit: { type: 'n8n-nodes-base.limit', typeVersion: 1 },
+  xml: { type: 'n8n-nodes-base.xml', typeVersion: 1 },
+  twitter: { type: 'n8n-nodes-base.twitter', typeVersion: 2 },
 };
 
 // ---------- the mapping table ----------

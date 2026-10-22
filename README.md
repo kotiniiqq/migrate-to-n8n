@@ -35,11 +35,11 @@ Formulas carry over too: `{{formatDate(1.date; "DD.MM.YYYY")}}` becomes
 `{{ DateTime.fromISO(String($('Webhook').item.json.body.date)).toFormat('dd.LL.yyyy') }}`.
 
 <!-- corpus:start -->
-Measured on 2026-10-21 on the public Make blueprints and Zapier exports found on GitHub:
+Measured on 2026-10-22 on the public Make blueprints and Zapier exports found on GitHub:
 
 | Source | Workflows | Steps | ✅ Converted | ⚠️ To review | 🛠 Manual | Broken outputs | Time (median) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Make | 1,432 | 10,129 | 42% | 38.1% | 19.9% | 0 | 1.1 ms |
+| Make | 1,432 | 10,129 | 42.6% | 39.5% | 17.9% | 0 | 0.7 ms |
 | Zapier | 148 | 910 | 7% | 63.7% | 29.2% | 0 | 0.3 ms |
 <!-- corpus:end -->
 
@@ -135,7 +135,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 
 <!-- supported:start -->
 <details>
-<summary><b>Make</b>: 111 modules and steps convert automatically</summary>
+<summary><b>Make</b>: 126 modules and steps convert automatically</summary>
 
 | Module / step | Becomes in n8n |
 |---|---|
@@ -150,6 +150,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `apify:fetchDatasetItems` | HTTP Request (Apify API) |
 | `apify:finishedActorRuns` | Webhook (Apify) |
 | `apify:runActor` | HTTP Request (Apify API) |
+| `apify:runActorNew` | HTTP Request (Apify API) |
 | `builtin:BasicAggregator` | Aggregate |
 | `builtin:BasicFeeder` | Split Out |
 | `builtin:BasicFilter` | No Operation |
@@ -157,7 +158,9 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `builtin:BasicRepeater` | Code (repeat) |
 | `builtin:BasicRouter` | No Operation (fan-out) |
 | `code:ExecuteCode` | Code |
+| `csv:ParseCSV` | Code (parse CSV) + Split Out |
 | `datastore:AddRecord` | Data Table: Insert Row |
+| `datastore:DeleteRecord` | Data Table: Delete Rows |
 | `datastore:ExistRecord` | Data Table: If Row Exists |
 | `datastore:GetRecord` | Data Table: Get Rows |
 | `datastore:SearchRecord` | Data Table: Get Rows |
@@ -173,9 +176,11 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `gmail:sendAnEmail` | Gmail: Send |
 | `gmail:TriggerNewEmail` | Gmail Trigger |
 | `google-calendar:createAnEvent` | Google Calendar: Create Event |
+| `google-calendar:deleteAnEvent` | Google Calendar: Delete Event |
 | `google-calendar:searchEvents` | Google Calendar: Get Many Events |
 | `google-docs:createADocument` | Google Docs: Create |
 | `google-docs:createADocumentFromTemplate` | Google Drive: Copy (template) |
+| `google-docs:getADocument` | Google Docs: Get |
 | `google-drive:createAFolder` | Google Drive: Create Folder |
 | `google-drive:getAFile` | Google Drive: Download |
 | `google-drive:moveAFileIntoAFolder` | Google Drive: Move |
@@ -183,6 +188,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `google-drive:shareAFileFolder` | Google Drive: Share |
 | `google-drive:uploadAFile` | Google Drive: Upload |
 | `google-drive:watchFilesInAFolder` | Google Drive Trigger |
+| `google-email:ActionCreateDraft` | Gmail: Create Draft |
 | `google-email:ActionSendEmail` | Gmail: Send |
 | `google-email:createADraft` | Gmail: Create Draft |
 | `google-email:sendAnEmail` | Gmail: Send |
@@ -190,6 +196,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `google-email:TriggerWatchEmails` | Gmail Trigger |
 | `google-email:triggerWatchNewEmails` | Gmail Trigger |
 | `google-sheets:addRow` | Google Sheets: Append Row |
+| `google-sheets:createSpreadsheet` | Google Sheets: Create Spreadsheet |
 | `google-sheets:deleteRow` | Google Sheets: Delete Rows |
 | `google-sheets:filterRows` | Google Sheets: Get Rows (+ Filter) |
 | `google-sheets:getCell` | HTTP Request (Sheets API, read a cell) |
@@ -215,6 +222,9 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `linkedin:ShareImage` | LinkedIn: Create Post |
 | `markdown:Compile` | Markdown → HTML |
 | `notion:createAPage` | Notion: Create Database Page |
+| `notion:updateADatabaseItem` | Notion: Update Database Page |
+| `open-router:createAChatCompletion` | HTTP Request (OpenRouter API) |
+| `openai-gpt-3:askAnything` | OpenAI: Message a Model |
 | `openai-gpt-3:CreateCompletion` | OpenAI: Message a Model |
 | `openai-gpt-3:createModelResponse` | OpenAI: Message a Model |
 | `openai-gpt-3:GenerateImage` | OpenAI: Generate an Image |
@@ -231,6 +241,7 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `scenario-service:ReturnData` | Edit Fields (sub-workflow output) |
 | `slack:CreateMessage` | Slack: Send Message |
 | `slack:InviteUsers` | Slack: Invite to Channel |
+| `supabase:ActionCreateARecord` | Supabase: Create Row |
 | `supabase:createARow` | Supabase: Create Row |
 | `supabase:searchRows` | Supabase: Get Many Rows |
 | `supabase:upsertARecord` | Supabase: Create Row |
@@ -238,6 +249,8 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `telegram:SendReplyMessage` | Telegram: Send Message |
 | `telegram:WatchUpdates` | Telegram Trigger |
 | `twilio:SendSMS` | Twilio: Send SMS |
+| `twitter:createATweet` | X (Twitter): Create Tweet |
+| `typeform:ListResponses` | HTTP Request (Typeform API) |
 | `typeform:WatchEventsWithResponses` | Typeform Trigger |
 | `util:ComposeTransformer` | Edit Fields |
 | `util:FunctionIncrement` | Code (counter) |
@@ -247,9 +260,11 @@ formats, operators and 25 Zapier Formatter transforms translate to n8n expressio
 | `util:SetMultipleVariables` | Edit Fields |
 | `util:SetVariable2` | Edit Fields |
 | `util:SetVariables` | Edit Fields |
+| `util:Sleep` | Wait |
 | `util:Switcher` | Edit Fields |
 | `util:TextAggregator` | Aggregate + Edit Fields |
 | `whatsapp-business-cloud:sendMessage` | WhatsApp: Send Message |
+| `xml:ParseXML` | XML (to JSON) |
 
 </details>
 

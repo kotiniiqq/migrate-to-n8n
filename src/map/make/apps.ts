@@ -53,6 +53,17 @@ register({
 });
 
 register({
+  source: 'make', key: 'openai-gpt-3:askAnything', label: 'OpenAI: Message a Model',
+  build(ctx) {
+    const p = ctx.step.params;
+    return {
+      nodes: [n8nNode('openAi', ctx.step.label, { resource: 'text', operation: 'response', modelId: rl('id', ctx.expr(str(p.model) || 'gpt-4o-mini')), responses: { values: [{ type: 'text', role: 'user', content: ctx.expr(str(p.textPrompt ?? p.prompt)) }] }, simplify: true, options: {} })],
+      status: 'converted', credential: { app: 'OpenAI', credentialType: 'openAiApi' }, ref: openAiRef(false),
+    };
+  },
+});
+
+register({
   source: 'make', key: 'openai-gpt-3:messageAssistantAdvanced', label: 'OpenAI: Message a Model (instructions)',
   build(ctx) {
     const p = ctx.step.params;
@@ -120,6 +131,29 @@ register({
     const msgs = list<{ role?: unknown; content?: unknown }>(p.messages).map((m) => `{ role: ${JSON.stringify(str(m.role) || 'user')}, content: ${ctx.js(str(m.content))} }`);
     const extra = num(p.max_tokens) !== undefined ? `, max_tokens: ${num(p.max_tokens)}` : '';
     return apiCall(ctx, 'Perplexity', 'POST', 'https://api.perplexity.ai/chat/completions', `={{ JSON.stringify({ model: ${ctx.js(str(p.model) || 'sonar')}, messages: [${msgs.join(', ')}]${extra} }) }}`);
+  },
+});
+
+register({
+  source: 'make', key: 'open-router:createAChatCompletion', label: 'HTTP Request (OpenRouter API)',
+  build(ctx) {
+    const p = ctx.step.params;
+    const msgs = list<{ role?: unknown; content?: unknown }>(p.messages).map((m) => `{ role: ${JSON.stringify(['system', 'assistant', 'user'].includes(str(m.role)) ? str(m.role) : 'user')}, content: ${ctx.js(str(m.content))} }`);
+    const extra = [['temperature', p.temperature], ['top_p', p.top_p], ['max_tokens', p.max_tokens]].filter(([, v]) => num(v) !== undefined).map(([k, v]) => `, ${k}: ${num(v)}`).join('');
+    const json = p.json_mode === true ? ", response_format: { type: 'json_object' }" : '';
+    // Same answer shape as Make's module (OpenAI's chat format), so choices[].message.content reads carry over.
+    return apiCall(ctx, 'OpenRouter', 'POST', 'https://openrouter.ai/api/v1/chat/completions', `={{ JSON.stringify({ model: ${ctx.js(str(p.model) || 'openrouter/auto')}, messages: [${msgs.join(', ')}]${extra}${json} }) }}`);
+  },
+});
+
+register({
+  source: 'make', key: 'typeform:ListResponses', label: 'HTTP Request (Typeform API)',
+  build(ctx) {
+    const p = ctx.step.params;
+    const qs = [num(p.limit) ? `page_size=${num(p.limit)}` : '', p.completed === true ? 'completed=true' : p.completed === false ? 'completed=false' : ''].filter(Boolean).join('&');
+    if (Array.isArray(p.excluded_response_ids) && p.excluded_response_ids.length) ctx.note('Make skipped some response ids; add them as the "excluded_response_ids" query parameter if they still matter.', true);
+    ctx.note('Typeform returns the responses in "items" of one result; add a Split Out on "items" if later steps expect one item per response.', true);
+    return apiCall(ctx, 'Typeform', 'GET', urlWith('https://api.typeform.com/forms/', ctx.js(str(p.formId)), `/responses${qs ? `?${qs}` : ''}`));
   },
 });
 
@@ -331,6 +365,7 @@ const API_BASES: Record<string, string> = {
   'google-email': 'https://gmail.googleapis.com/gmail/v1', 'openai-gpt-3': 'https://api.openai.com', stripe: 'https://api.stripe.com',
   zoho: 'https://www.zohoapis.com', 'zoho-crm': 'https://www.zohoapis.com/crm/v2', github: 'https://api.github.com', calendly: 'https://api.calendly.com',
   telegram: 'https://api.telegram.org', discord: 'https://discord.com/api', typeform: 'https://api.typeform.com', apify: 'https://api.apify.com',
+  sellsy: 'https://api.sellsy.com',
 };
 
 register({

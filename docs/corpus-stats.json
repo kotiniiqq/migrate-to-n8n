@@ -1,19 +1,19 @@
 {
-  "date": "2026-10-21",
+  "date": "2026-10-22",
   "make": {
     "files": 1432,
     "steps": 10129,
     "share": {
-      "converted": 42,
-      "review": 38.1,
-      "manual": 19.9
+      "converted": 42.6,
+      "review": 39.5,
+      "manual": 17.9
     },
-    "convertedOrReview": 80.1,
+    "convertedOrReview": 82.1,
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 1.0769999999999982,
-      "max": 10.300600000000031
+      "p50": 0.7392999999999574,
+      "max": 9.79940000000002
     }
   },
   "zapier": {
@@ -28,8 +28,8 @@
     "filesWithCheckErrors": 0,
     "filesWithCatalogErrors": 0,
     "ms": {
-      "p50": 0.3379190000000017,
-      "max": 4.85360000000037
+      "p50": 0.25797999999999777,
+      "max": 4.727700000000368
     }
   }
 }

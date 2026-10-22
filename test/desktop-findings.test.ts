@@ -44,9 +44,11 @@ test('messages sent by n8n carry no n8n signature or workflow link (Make and Zap
   assert.equal(p(oneMake('slack:CreateMessage', { channel: 'C1', text: 'hi', channelType: 'public', channelWType: 'list' }).node).otherOptions.includeLinkToWorkflow, false);
   assert.equal(p(oneMake('telegram:SendReplyMessage', { chatId: '1', text: 'hi' }).node).additionalFields.appendAttribution, false);
   // A Gmail step left for finishing by hand sends nothing yet: no option it would not show (oneMake checks the catalog).
-  const draft = oneMake('google-email:ActionCreateDraft', { to: ['a@b.c'] });
-  assert.equal(draft.step.status, 'manual');
-  assert.equal(p(draft.node).options, undefined);
+  const manual = oneMake('google-email:ActionMoveEmail', { to: ['a@b.c'] });
+  assert.equal(manual.step.status, 'manual');
+  assert.equal(p(manual.node).options, undefined);
+  // A draft is not sent either, and the Gmail draft node has no attribution option to turn off.
+  assert.equal(p(oneMake('google-email:ActionCreateDraft', { to: ['a@b.c'] }).node).options.appendAttribution, undefined);
 });
 
 test('times computed from "now" or dates name the time zone to set in n8n', () => {
